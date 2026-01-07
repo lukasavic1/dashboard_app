@@ -54,9 +54,6 @@ function isCrowded(index: number): boolean {
   return index >= 85 || index <= 15;
 }
 
-/**
- * Computes Larry Williams style COT analysis
- */
 export function computeCotAnalysis(history: ParsedCot[]): CotAnalysis {
   if (history.length < 2) {
     throw new Error("Need at least 2 weeks of history for analysis");
@@ -102,7 +99,7 @@ export function computeCotAnalysis(history: ParsedCot[]): CotAnalysis {
   // Calculate open interest change
   const openInterestChange = current.openInterest - previous.openInterest;
 
-  // Scoring Model (Larry Williams Style)
+  // Scoring Model
   let score = 0;
 
   // Commercials (50% weight)

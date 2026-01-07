@@ -26,7 +26,7 @@ export function DashboardWrapper({ assetsData }: DashboardWrapperProps) {
                   Market Fundamentals Dashboard
                 </h1>
                 <p className="mt-1 text-sm text-gray-500">
-                  Larry Williams–style analysis based on COT reports and seasonality
+                  Analysis based on COT reports and seasonality
                 </p>
               </div>
               <div className="flex items-center gap-4">
