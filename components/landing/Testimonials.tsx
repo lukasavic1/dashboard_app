@@ -1,47 +1,47 @@
 const testimonials = [
   {
     name: 'Sarah Chen',
-    role: 'Professional Trader',
+    role: 'Day Trader',
     content:
-      'MarketLens has transformed how I analyze markets. The COT data insights are incredibly valuable and the seasonal trends help me time my entries perfectly.',
+      'I used to spend hours trying to figure out what the market was doing. Now I just check the signal. It\'s saved me from at least 3 bad trades this month alone.',
   },
   {
     name: 'Michael Rodriguez',
-    role: 'Hedge Fund Analyst',
+    role: 'Swing Trader',
     content:
-      'The combination of COT reports and seasonality analysis in one platform is exactly what I needed. The customizable sliders let me fine-tune everything to my strategy.',
+      'The seasonal data combined with COT positioning is gold. I caught a 15% move in crude because the signal was strong and seasonality aligned. This pays for itself.',
   },
   {
     name: 'David Kim',
-    role: 'Independent Investor',
+    role: 'Part-Time Trader',
     content:
-      'As someone who trades part-time, MarketLens gives me access to professional-grade analysis without the complexity. The alerts keep me informed without constant monitoring.',
+      'I don\'t have time to analyze charts all day. This gives me the same edge the pros have, in 30 seconds. Best $99 I spend every month.',
   },
 ];
 
 export function Testimonials() {
   return (
-    <div className="bg-gray-50 py-24 sm:py-32">
+    <div className="bg-white py-24 sm:py-32">
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
         <div className="mx-auto max-w-2xl lg:text-center">
-          <h2 className="text-base font-semibold leading-7 text-blue-600">Testimonials</h2>
+          <h2 className="text-base font-semibold leading-7 text-blue-600">Real Results</h2>
           <p className="mt-2 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
-            Trusted by traders and analysts
+            Traders Who Use Clear Signals Win More
           </p>
         </div>
-        <div className="mx-auto mt-16 flow-root max-w-2xl sm:mt-20 lg:mx-0 lg:max-w-none">
-          <div className="-mt-8 sm:-mx-4 sm:columns-1 sm:text-[0] lg:columns-3">
+        <div className="mx-auto mt-16 max-w-2xl sm:mt-20 lg:mt-24 lg:max-w-7xl">
+          <div className="grid grid-cols-1 gap-8 sm:grid-cols-1 lg:grid-cols-3">
             {testimonials.map((testimonial, index) => (
               <div
                 key={index}
-                className="pt-8 sm:inline-block sm:w-full sm:px-4"
+                className="flex"
               >
-                <figure className="rounded-2xl bg-white p-8 text-sm leading-6 shadow-lg ring-1 ring-gray-900/5">
-                  <blockquote className="text-gray-900">
+                <figure className="flex flex-col rounded-2xl bg-white p-6 sm:p-8 text-sm leading-6 shadow-lg ring-1 ring-gray-900/5 h-full">
+                  <blockquote className="text-gray-900 flex-grow">
                     <p>"{testimonial.content}"</p>
                   </blockquote>
                   <figcaption className="mt-6 flex items-center gap-x-4">
-                    <div className="h-10 w-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-semibold">
+                    <div className="h-10 w-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-semibold flex-shrink-0">
                       {testimonial.name.charAt(0)}
                     </div>
                     <div>

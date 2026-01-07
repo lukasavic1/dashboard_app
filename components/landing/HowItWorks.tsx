@@ -6,33 +6,33 @@ import {
 
 const steps = [
   {
-    name: 'Log in & Select Assets',
-    description: 'Sign in to your account and choose from a wide range of assets to analyze.',
+    name: 'Pick Your Market',
+    description: 'Choose any asset. We pull the latest COT data and seasonal patterns automatically.',
     icon: UserCircleIcon,
   },
   {
-    name: 'Analyze Scores & Trends',
-    description: 'View real-time COT scores, seasonal trends, and combined bias indicators for each asset.',
+    name: 'See the Signal',
+    description: 'Get one clear number: bullish or bearish. Plus seasonal context. That\'s it. No charts to decode.',
     icon: MagnifyingGlassIcon,
   },
   {
-    name: 'Make Informed Decisions',
-    description: 'Use the insights and alerts to make data-driven trading decisions with confidence.',
+    name: 'Trade with Confidence',
+    description: 'When the signal is strong and seasonality aligns, you know. Enter. Exit. Repeat.',
     icon: CheckCircleIcon,
   },
 ];
 
 export function HowItWorks() {
   return (
-    <div id="about" className="bg-gray-50 py-24 sm:py-32">
+    <div id="about" className="bg-white py-24 sm:py-32">
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
         <div className="mx-auto max-w-2xl lg:text-center">
           <h2 className="text-base font-semibold leading-7 text-blue-600">How It Works</h2>
           <p className="mt-2 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
-            Get started in three simple steps
+            Three Steps. Zero Complexity.
           </p>
           <p className="mt-6 text-lg leading-8 text-gray-600">
-            Our streamlined process makes it easy to access professional market analysis.
+            No learning curve. No setup. Just clear signals you can use immediately.
           </p>
         </div>
         <div className="mx-auto mt-16 max-w-2xl sm:mt-20 lg:mt-24 lg:max-w-4xl">

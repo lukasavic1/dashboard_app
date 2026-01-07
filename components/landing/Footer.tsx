@@ -4,9 +4,9 @@ import Link from 'next/link';
 
 const navigation = {
   product: [
-    { name: 'Features', href: '#features' },
+    { name: 'How It Works', href: '#problem-solution' },
+    { name: 'Benefits', href: '#features' },
     { name: 'Pricing', href: '#pricing' },
-    { name: 'About', href: '#about' },
   ],
   legal: [
     { name: 'Privacy', href: '#' },

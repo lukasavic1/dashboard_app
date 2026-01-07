@@ -5,57 +5,57 @@ import {
   BellAlertIcon,
 } from '@heroicons/react/24/outline';
 
-const features = [
+const benefits = [
   {
-    name: 'Market Analysis from COT Reports',
+    name: 'Stop Guessing. Start Knowing.',
     description:
-      'Access comprehensive market analysis derived from official Commitment of Traders reports. Get insights into commercial and non-commercial trader positions.',
+      'See exactly what commercial traders—the market movers—are doing. No interpretation. No confusion. Just clear bullish or bearish signals based on real positioning data.',
     icon: ChartBarIcon,
   },
   {
-    name: 'Scores & Insights',
+    name: 'Get In Before the Crowd',
     description:
-      'Receive clear bullish/bearish scores and bias indicators to help you understand market sentiment at a glance.',
+      'Commercial positioning predicts price moves. You see the signal before retail catches on, giving you better entries and exits.',
     icon: LightBulbIcon,
   },
   {
-    name: 'Customizable Calculation Sliders',
+    name: 'Match Your Strategy, Not Ours',
     description:
-      'Fine-tune your analysis with adjustable parameters that let you customize how scores are calculated to match your trading strategy.',
+      'Adjust how signals are calculated to fit your risk tolerance and trading style. Conservative? Aggressive? You control it.',
     icon: AdjustmentsHorizontalIcon,
   },
   {
-    name: 'Seasonal Trends & Alerts',
+    name: 'Never Miss a Seasonal Move',
     description:
-      'Stay ahead with seasonal trend analysis and automated alerts that notify you of significant market movements and opportunities.',
+      'Know when historical patterns align with current positioning. Get alerts when everything lines up for a high-probability trade.',
     icon: BellAlertIcon,
   },
 ];
 
 export function Features() {
   return (
-    <div id="features" className="py-24 sm:py-32">
+    <div id="features" className="bg-gray-50 py-24 sm:py-32">
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
         <div className="mx-auto max-w-2xl lg:text-center">
-          <h2 className="text-base font-semibold leading-7 text-blue-600">Features</h2>
+          <h2 className="text-base font-semibold leading-7 text-blue-600">What You Get</h2>
           <p className="mt-2 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
-            Everything you need to analyze markets
+            Trade Like You Have Inside Information
           </p>
           <p className="mt-6 text-lg leading-8 text-gray-600">
-            Powerful tools and insights to help you make better trading decisions based on fundamental market data.
+            The same data institutions use, delivered as actionable signals. No PhD required.
           </p>
         </div>
         <div className="mx-auto mt-16 max-w-2xl sm:mt-20 lg:mt-24 lg:max-w-4xl">
           <dl className="grid max-w-xl grid-cols-1 gap-x-8 gap-y-10 lg:max-w-none lg:grid-cols-2 lg:gap-y-16">
-            {features.map((feature) => (
-              <div key={feature.name} className="relative pl-16">
+            {benefits.map((benefit) => (
+              <div key={benefit.name} className="relative pl-16">
                 <dt className="text-base font-semibold leading-7 text-gray-900">
                   <div className="absolute left-0 top-0 flex h-10 w-10 items-center justify-center rounded-lg bg-blue-600">
-                    <feature.icon className="h-6 w-6 text-white" aria-hidden="true" />
+                    <benefit.icon className="h-6 w-6 text-white" aria-hidden="true" />
                   </div>
-                  {feature.name}
+                  {benefit.name}
                 </dt>
-                <dd className="mt-2 text-base leading-7 text-gray-600">{feature.description}</dd>
+                <dd className="mt-2 text-base leading-7 text-gray-600">{benefit.description}</dd>
               </div>
             ))}
           </dl>

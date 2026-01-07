@@ -68,28 +68,22 @@ export function Header() {
           {/* Desktop navigation */}
           <div className="hidden lg:flex lg:gap-x-12">
             <button
+              onClick={() => scrollToSection('problem-solution')}
+              className="text-sm font-semibold leading-6 text-gray-900 hover:text-blue-600 transition-colors"
+            >
+              How It Works
+            </button>
+            <button
               onClick={() => scrollToSection('features')}
               className="text-sm font-semibold leading-6 text-gray-900 hover:text-blue-600 transition-colors"
             >
-              Features
+              Benefits
             </button>
             <button
               onClick={() => scrollToSection('pricing')}
               className="text-sm font-semibold leading-6 text-gray-900 hover:text-blue-600 transition-colors"
             >
               Pricing
-            </button>
-            <button
-              onClick={() => scrollToSection('about')}
-              className="text-sm font-semibold leading-6 text-gray-900 hover:text-blue-600 transition-colors"
-            >
-              About
-            </button>
-            <button
-              onClick={() => scrollToSection('contact')}
-              className="text-sm font-semibold leading-6 text-gray-900 hover:text-blue-600 transition-colors"
-            >
-              Contact
             </button>
           </div>
 
@@ -158,28 +152,22 @@ export function Header() {
           <div className="lg:hidden">
             <div className="space-y-2 border-t border-gray-200 px-4 py-6">
               <button
+                onClick={() => scrollToSection('problem-solution')}
+                className="block w-full text-left text-base font-semibold leading-7 text-gray-900 hover:text-blue-600 transition-colors"
+              >
+                How It Works
+              </button>
+              <button
                 onClick={() => scrollToSection('features')}
                 className="block w-full text-left text-base font-semibold leading-7 text-gray-900 hover:text-blue-600 transition-colors"
               >
-                Features
+                Benefits
               </button>
               <button
                 onClick={() => scrollToSection('pricing')}
                 className="block w-full text-left text-base font-semibold leading-7 text-gray-900 hover:text-blue-600 transition-colors"
               >
                 Pricing
-              </button>
-              <button
-                onClick={() => scrollToSection('about')}
-                className="block w-full text-left text-base font-semibold leading-7 text-gray-900 hover:text-blue-600 transition-colors"
-              >
-                About
-              </button>
-              <button
-                onClick={() => scrollToSection('contact')}
-                className="block w-full text-left text-base font-semibold leading-7 text-gray-900 hover:text-blue-600 transition-colors"
-              >
-                Contact
               </button>
               <div className="flex flex-col gap-3 pt-4">
                 {user ? (
