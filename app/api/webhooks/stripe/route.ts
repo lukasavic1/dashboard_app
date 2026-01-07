@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
 
         if (subscriptionId) {
           // Get subscription details
-          const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+          const subscription = (await stripe.subscriptions.retrieve(subscriptionId)) as Stripe.Subscription;
 
           if (firebaseUid) {
             // Ensure user exists
@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
             await updateSubscription(firebaseUid, {
               stripeSubscriptionId: subscriptionId,
               subscriptionStatus: subscription.status,
-              subscriptionEndsAt: new Date(subscription.current_period_end * 1000),
+              subscriptionEndsAt: new Date((subscription as any).current_period_end * 1000),
             });
           } else if (customerId) {
             // Try to find user by customer ID
@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
               await updateSubscription(user.id, {
                 stripeSubscriptionId: subscriptionId,
                 subscriptionStatus: subscription.status,
-                subscriptionEndsAt: new Date(subscription.current_period_end * 1000),
+                subscriptionEndsAt: new Date((subscription as any).current_period_end * 1000),
               });
             }
           }
@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
           await updateSubscription(firebaseUid, {
             stripeSubscriptionId: subscription.id,
             subscriptionStatus: subscription.status,
-            subscriptionEndsAt: new Date(subscription.current_period_end * 1000),
+            subscriptionEndsAt: new Date((subscription as any).current_period_end * 1000),
           });
         } else {
           // Try to find user by customer ID
@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
             await updateSubscription(user.id, {
               stripeSubscriptionId: subscription.id,
               subscriptionStatus: subscription.status,
-              subscriptionEndsAt: new Date(subscription.current_period_end * 1000),
+              subscriptionEndsAt: new Date((subscription as any).current_period_end * 1000),
             });
           }
         }
@@ -104,14 +104,14 @@ export async function POST(request: NextRequest) {
         if (firebaseUid) {
           await updateSubscription(firebaseUid, {
             subscriptionStatus: 'canceled',
-            subscriptionEndsAt: new Date(subscription.current_period_end * 1000),
+            subscriptionEndsAt: new Date((subscription as any).current_period_end * 1000),
           });
         } else {
           const user = await getUserByStripeSubscriptionId(subscription.id);
           if (user) {
             await updateSubscription(user.id, {
               subscriptionStatus: 'canceled',
-              subscriptionEndsAt: new Date(subscription.current_period_end * 1000),
+              subscriptionEndsAt: new Date((subscription as any).current_period_end * 1000),
             });
           }
         }
@@ -123,20 +123,20 @@ export async function POST(request: NextRequest) {
         const subscriptionId = invoice.subscription as string;
 
         if (subscriptionId) {
-          const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+          const subscription = (await stripe.subscriptions.retrieve(subscriptionId)) as Stripe.Subscription;
           const firebaseUid = subscription.metadata?.firebaseUid;
 
           if (firebaseUid) {
             await updateSubscription(firebaseUid, {
               subscriptionStatus: subscription.status,
-              subscriptionEndsAt: new Date(subscription.current_period_end * 1000),
+              subscriptionEndsAt: new Date((subscription as any).current_period_end * 1000),
             });
           } else {
             const user = await getUserByStripeSubscriptionId(subscriptionId);
             if (user) {
               await updateSubscription(user.id, {
                 subscriptionStatus: subscription.status,
-                subscriptionEndsAt: new Date(subscription.current_period_end * 1000),
+                subscriptionEndsAt: new Date((subscription as any).current_period_end * 1000),
               });
             }
           }
@@ -149,7 +149,7 @@ export async function POST(request: NextRequest) {
         const subscriptionId = invoice.subscription as string;
 
         if (subscriptionId) {
-          const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+          const subscription = (await stripe.subscriptions.retrieve(subscriptionId)) as Stripe.Subscription;
           const firebaseUid = subscription.metadata?.firebaseUid;
 
           if (firebaseUid) {
