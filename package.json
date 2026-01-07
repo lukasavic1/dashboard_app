@@ -9,7 +9,12 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.32.1",
+    "@heroicons/react": "^2.2.0",
+    "@prisma/client": "^6.19.1",
+    "adm-zip": "^0.5.16",
     "next": "16.1.1",
+    "prisma": "^6.19.1",
     "react": "19.2.3",
     "react-dom": "19.2.3"
   },
