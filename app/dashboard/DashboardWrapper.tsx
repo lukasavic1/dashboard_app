@@ -16,26 +16,29 @@ export function DashboardWrapper({ assetsData }: DashboardWrapperProps) {
 
   return (
     <SubscriptionProtectedRoute>
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50">
         {/* Header */}
-        <header className="border-b bg-white">
-          <div className="mx-auto max-w-7xl px-6 py-5">
-            <div className="flex items-center justify-between">
+        <header className="border-b border-slate-200/60 bg-white/80 backdrop-blur-sm sticky top-0 z-10 shadow-sm">
+          <div className="mx-auto max-w-[1920px] px-4 sm:px-6 lg:px-8 py-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div>
-                <h1 className="text-2xl font-semibold text-gray-900">
+                <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
                   Market Fundamentals Dashboard
                 </h1>
-                <p className="mt-1 text-sm text-gray-500">
-                  Analysis based on COT reports and seasonality
+                <p className="mt-1 text-xs sm:text-sm text-slate-600">
+                  COT reports & seasonality analysis
                 </p>
               </div>
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3 w-full sm:w-auto">
+                <div className="flex-1 sm:flex-initial">
+                  <RefreshButton />
+                </div>
                 <Link
                   href="/profile"
-                  className="flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
+                  className="flex items-center gap-2 rounded-lg px-3 sm:px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 transition-colors border border-slate-200"
                 >
                   <UserCircleIcon className="h-5 w-5" />
-                  <span className="hidden sm:inline">{user?.email}</span>
+                  <span className="hidden sm:inline truncate max-w-[150px]">{user?.email}</span>
                 </Link>
               </div>
             </div>
@@ -43,24 +46,8 @@ export function DashboardWrapper({ assetsData }: DashboardWrapperProps) {
         </header>
 
         {/* Main */}
-        <main className="mx-auto max-w-7xl px-6 py-8">
-          <div className="space-y-6">
-            {/* Actions */}
-            <div className="flex items-center justify-between rounded-xl border bg-white p-6">
-              <div>
-                <h3 className="text-lg font-medium text-gray-900">
-                  Data Status
-                </h3>
-                <p className="text-sm text-gray-500">
-                  Fundamental data is cached and refreshed only when stale
-                </p>
-              </div>
-
-              <RefreshButton />
-            </div>
-            {/* Dashboard Content */}
-            <DashboardContent assetsData={assetsData} />
-          </div>
+        <main className="mx-auto max-w-[1920px] px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+          <DashboardContent assetsData={assetsData} />
         </main>
       </div>
     </SubscriptionProtectedRoute>

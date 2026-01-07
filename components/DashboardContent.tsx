@@ -36,40 +36,44 @@ export function DashboardContent({ assetsData }: DashboardContentProps) {
   const selectedAssetInfo = ASSETS.find(a => a.id === selectedAssetId);
 
   return (
-    <div className="space-y-6">
-      {/* Asset Cards Grid */}
-      <div>
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">
-          Assets
-        </h2>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {ASSETS.map(asset => {
-            const data = assetsData.find(d => d.assetId === asset.id);
+    <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
+      {/* Sidebar - Asset Cards */}
+      <aside className="lg:w-80 xl:w-96 flex-shrink-0">
+        <div className="sticky top-24">
+          <div className="mb-4">
+            <h2 className="text-sm font-semibold text-slate-700 uppercase tracking-wide mb-1">
+              Assets
+            </h2>
+            <p className="text-xs text-slate-500">
+              Select an asset to view detailed analysis
+            </p>
+          </div>
+          <div className="space-y-3 max-h-[calc(100vh-12rem)] overflow-y-auto pr-2 custom-scrollbar">
+            {ASSETS.map(asset => {
+              const data = assetsData.find(d => d.assetId === asset.id);
 
-            return (
-              <AssetCard
-                key={asset.id}
-                assetId={asset.id}
-                assetName={asset.name}
-                seasonalityScore={data?.seasonality?.score ?? null}
-                finalScore={data?.finalScore}
-                finalBias={data?.finalBias}
-                cotScore={data?.cotScore}
-                cotBias={data?.cotBias}
-                isSelected={selectedAssetId === asset.id}
-                onClick={() => setSelectedAssetId(asset.id)}
-              />
-            );
-          })}
+              return (
+                <AssetCard
+                  key={asset.id}
+                  assetId={asset.id}
+                  assetName={asset.name}
+                  seasonalityScore={data?.seasonality?.score ?? null}
+                  finalScore={data?.finalScore}
+                  finalBias={data?.finalBias}
+                  cotScore={data?.cotScore}
+                  cotBias={data?.cotBias}
+                  isSelected={selectedAssetId === asset.id}
+                  onClick={() => setSelectedAssetId(asset.id)}
+                />
+              );
+            })}
+          </div>
         </div>
-      </div>
+      </aside>
 
-      {/* Selected Asset Details */}
-      {selectedAsset && selectedAssetInfo && (
-        <div>
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">
-            {selectedAssetInfo.name} ({selectedAssetInfo.id}) Analysis
-          </h2>
+      {/* Main Content - Selected Asset Details */}
+      <div className="flex-1 min-w-0">
+        {selectedAsset && selectedAssetInfo ? (
           <AssetDetails
             assetId={selectedAsset.assetId}
             assetName={selectedAssetInfo.name}
@@ -82,8 +86,12 @@ export function DashboardContent({ assetsData }: DashboardContentProps) {
             finalBias={selectedAsset.finalBias}
             breakdown={selectedAsset.breakdown}
           />
-        </div>
-      )}
+        ) : (
+          <div className="rounded-2xl border border-slate-200 bg-white p-12 text-center shadow-sm">
+            <p className="text-slate-500">Select an asset to view its analysis</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

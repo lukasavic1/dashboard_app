@@ -50,18 +50,20 @@ interface CotData {
   };
 }
 
-function cotBiasColor(bias: CotAnalysis['bias']): string {
+function cotBiasColor(bias: CotAnalysis['bias'] | string): string {
   switch (bias) {
     case 'Strongly Bullish':
-      return 'text-green-700 bg-green-100 border-green-300';
+      return 'text-emerald-700 bg-emerald-50 border-emerald-200';
     case 'Bullish':
-      return 'text-green-600 bg-green-50 border-green-200';
+      return 'text-emerald-600 bg-emerald-50/50 border-emerald-200';
     case 'Neutral':
-      return 'text-yellow-700 bg-yellow-100 border-yellow-300';
+      return 'text-amber-700 bg-amber-50 border-amber-200';
     case 'Bearish':
-      return 'text-red-600 bg-red-50 border-red-200';
+      return 'text-rose-600 bg-rose-50/50 border-rose-200';
     case 'Strongly Bearish':
-      return 'text-red-700 bg-red-100 border-red-300';
+      return 'text-rose-700 bg-rose-50 border-rose-200';
+    default:
+      return 'text-slate-600 bg-slate-50 border-slate-200';
   }
 }
 
@@ -86,8 +88,8 @@ export function AssetDetails({
 }: AssetDetailsProps) {
   if (!seasonality && !cotData) {
     return (
-      <div className="rounded-xl border bg-white p-6">
-        <p className="text-gray-500">No data available for {assetName}</p>
+      <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
+        <p className="text-slate-500">No data available for {assetName}</p>
       </div>
     );
   }
@@ -98,229 +100,205 @@ export function AssetDetails({
 
   return (
     <div className="space-y-6">
-      {/* Combined Analysis Section */}
-      {hasCombinedAnalysis && (
-        <div className="rounded-xl border bg-white p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
-            Combined Analysis
-          </h3>
+      {/* Hero Section - Asset Overview */}
+      <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-white via-slate-50/30 to-white p-6 sm:p-8 shadow-lg">
+        <div className="mb-6">
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-2">
+            {assetName}
+          </h1>
+          <p className="text-sm text-slate-500 font-mono">{assetId}</p>
+        </div>
 
-          <div className="grid grid-cols-2 gap-4 mb-6">
-            <div>
-              <p className="text-sm text-gray-500">Final Bias</p>
-              <span className={`inline-flex items-center rounded-full border px-4 py-2 text-base font-bold mt-2 ${cotBiasColor(finalBias as any)}`}>
-                {finalBias}
-              </span>
+        {hasCombinedAnalysis && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            {/* Final Bias - Hero Display */}
+            <div className="space-y-2">
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Final Bias</p>
+              <div className="flex items-center gap-3">
+                <span className={`inline-flex items-center rounded-xl border-2 px-5 py-3 text-lg font-bold ${cotBiasColor(finalBias)}`}>
+                  {finalBias}
+                </span>
+              </div>
             </div>
-            <div>
-              <p className="text-sm text-gray-500">Final Score</p>
-              <p className="text-3xl font-bold text-gray-900 mt-2">
+
+            {/* Final Score - Hero Display */}
+            <div className="space-y-2">
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Final Score</p>
+              <p className="text-4xl sm:text-5xl font-bold text-slate-900">
                 {finalScore > 0 ? '+' : ''}{finalScore.toFixed(1)}
               </p>
             </div>
           </div>
+        )}
 
-          {/* Breakdown Table */}
-          <div className="bg-gray-50 rounded-lg p-4">
-            <p className="text-sm font-medium text-gray-700 mb-3">Score Breakdown</p>
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-left border-b border-gray-300">
-                  <th className="pb-2 font-medium text-gray-600">Component</th>
-                  <th className="pb-2 font-medium text-gray-600 text-right">Score</th>
-                  <th className="pb-2 font-medium text-gray-600 text-right">Weight</th>
-                  <th className="pb-2 font-medium text-gray-600 text-right">Contribution</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                <tr>
-                  <td className="py-2 text-gray-900">COT</td>
-                  <td className="py-2 text-right font-medium text-gray-900">
-                    {breakdown.cotScore > 0 ? '+' : ''}{breakdown.cotScore}
-                  </td>
-                  <td className="py-2 text-right text-gray-600">70%</td>
-                  <td className="py-2 text-right font-semibold text-gray-900">
-                    {breakdown.cotContribution > 0 ? '+' : ''}{breakdown.cotContribution.toFixed(1)}
-                  </td>
-                </tr>
-                <tr>
-                  <td className="py-2 text-gray-900">Seasonality</td>
-                  <td className="py-2 text-right font-medium text-gray-900">
-                    {breakdown.seasonalityScore > 0 ? '+' : ''}{breakdown.seasonalityScore.toFixed(1)}
-                  </td>
-                  <td className="py-2 text-right text-gray-600">30%</td>
-                  <td className="py-2 text-right font-semibold text-gray-900">
-                    {breakdown.seasonalityContribution > 0 ? '+' : ''}{breakdown.seasonalityContribution.toFixed(1)}
-                  </td>
-                </tr>
-                <tr className="border-t border-gray-300">
-                  <td className="py-2 text-gray-700" colSpan={3}>Base Total</td>
-                  <td className="py-2 text-right font-semibold text-gray-900">
-                    {breakdown.baseScore > 0 ? '+' : ''}{breakdown.baseScore.toFixed(1)}
-                  </td>
-                </tr>
-                {breakdown.convictionBoostApplied && (
-                  <tr>
-                    <td className="py-2 text-gray-700" colSpan={3}>
-                      <span className="flex items-center gap-2">
-                        Conviction Boost
-                        <span className="text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full">
-                          Aligned signals
-                        </span>
-                      </span>
-                    </td>
-                    <td className="py-2 text-right font-semibold text-orange-600">
-                      {breakdown.convictionBoostAmount > 0 ? '+' : ''}{breakdown.convictionBoostAmount.toFixed(1)}
-                    </td>
-                  </tr>
-                )}
-                <tr className="border-t-2 border-gray-400">
-                  <td className="py-2 font-bold text-gray-900" colSpan={3}>Final Score</td>
-                  <td className="py-2 text-right font-bold text-lg text-gray-900">
-                    {finalScore > 0 ? '+' : ''}{finalScore.toFixed(1)}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-      {/* Seasonality Section */}
-      {seasonality && (
-        <div className="rounded-xl border bg-white p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
-            Seasonality Analysis
-          </h3>
-          
-          <div className="grid grid-cols-2 gap-4 mb-4">
-            <div>
-              <p className="text-sm text-gray-500">Bias</p>
-              {bias && (
-                <span className={`inline-flex items-center rounded-full border px-3 py-1 text-sm font-medium mt-1 ${colorClasses}`}>
-                  {bias}
-                </span>
-              )}
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">Score</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">
-                {seasonality.score > 0 ? '+' : ''}{seasonality.score.toFixed(2)}
-              </p>
-            </div>
-          </div>
-
-          {seasonality.activeWindows.length > 0 ? (
-            <div>
-              <p className="text-sm font-medium text-gray-700 mb-2">
-                Active Seasonal Windows:
-              </p>
-              <ul className="space-y-2">
-                {seasonality.activeWindows.map((window, i) => (
-                  <li key={i} className="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg">
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium">
-                        {getMonthName(window.startMonth)} - {getMonthName(window.endMonth)}
-                      </span>
-                      <span className={`font-semibold ${window.score > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        {window.score > 0 ? '+' : ''}{window.score.toFixed(2)}
-                      </span>
-                    </div>
-                    {window.note && (
-                      <p className="text-xs text-gray-500 mt-1">{window.note}</p>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : (
-            <p className="text-sm text-gray-500">No active seasonal windows for this month.</p>
-          )}
-        </div>
-      )}
-
-      {/* COT Report Section */}
-      {cotData ? (
-        <div className="space-y-6">
-          {/* COT Analysis Summary */}
-          {cotData.derivedData.analysis && (
-            <div className="rounded-xl border bg-white p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                COT Analysis
-              </h3>
-              
-              <div className="grid grid-cols-3 gap-4 mb-4">
-                <div>
-                  <p className="text-sm text-gray-500">Bias</p>
-                  <span className={`inline-flex items-center rounded-full border px-3 py-1 text-sm font-medium mt-1 ${cotBiasColor(cotData.derivedData.analysis.bias)}`}>
-                    {cotData.derivedData.analysis.bias}
-                  </span>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Score</p>
-                  <p className="text-2xl font-bold text-gray-900 mt-1">
-                    {cotData.derivedData.analysis.score > 0 ? '+' : ''}{cotData.derivedData.analysis.score}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Report Date</p>
-                  <p className="text-sm font-medium text-gray-900 mt-1">
-                    {new Date(cotData.reportDate).toLocaleDateString()}
-                  </p>
-                </div>
+        {/* Score Breakdown - Compact */}
+        {hasCombinedAnalysis && breakdown && (
+          <div className="mt-6 pt-6 border-t border-slate-200">
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Score Breakdown</p>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="bg-slate-50 rounded-lg p-3 border border-slate-100">
+                <p className="text-xs text-slate-500 mb-1">COT Score</p>
+                <p className="text-lg font-bold text-slate-900">
+                  {breakdown.cotScore > 0 ? '+' : ''}{breakdown.cotScore}
+                </p>
+                <p className="text-xs text-slate-500 mt-1">70% weight</p>
               </div>
-
-              {cotData.derivedData.analysis.notes.length > 0 && (
-                <div className="mt-4">
-                  <p className="text-sm font-medium text-gray-700 mb-2">Analysis Notes:</p>
-                  <ul className="space-y-2">
-                    {cotData.derivedData.analysis.notes.map((note, i) => (
-                      <li key={i} className="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg">
-                        • {note}
-                      </li>
-                    ))}
-                  </ul>
+              <div className="bg-slate-50 rounded-lg p-3 border border-slate-100">
+                <p className="text-xs text-slate-500 mb-1">Seasonality</p>
+                <p className="text-lg font-bold text-slate-900">
+                  {breakdown.seasonalityScore > 0 ? '+' : ''}{breakdown.seasonalityScore.toFixed(1)}
+                </p>
+                <p className="text-xs text-slate-500 mt-1">30% weight</p>
+              </div>
+              <div className="bg-slate-50 rounded-lg p-3 border border-slate-100">
+                <p className="text-xs text-slate-500 mb-1">Base Total</p>
+                <p className="text-lg font-bold text-slate-900">
+                  {breakdown.baseScore > 0 ? '+' : ''}{breakdown.baseScore.toFixed(1)}
+                </p>
+              </div>
+              {breakdown.convictionBoostApplied && (
+                <div className="bg-orange-50 rounded-lg p-3 border border-orange-100">
+                  <p className="text-xs text-orange-600 mb-1">Conviction Boost</p>
+                  <p className="text-lg font-bold text-orange-700">
+                    {breakdown.convictionBoostAmount > 0 ? '+' : ''}{breakdown.convictionBoostAmount.toFixed(1)}
+                  </p>
+                  <p className="text-xs text-orange-600 mt-1">Aligned</p>
                 </div>
               )}
             </div>
-          )}
+          </div>
+        )}
+      </div>
 
-          {/* COT Detailed Metrics */}
-          <div className="rounded-xl border bg-white p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              COT Positioning Details
-            </h3>
+      {/* Detailed Analysis Sections */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* COT Analysis Card */}
+        {cotData?.derivedData.analysis && (
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div className="mb-4">
+              <h3 className="text-lg font-bold text-slate-900 mb-1">COT Analysis</h3>
+              <p className="text-xs text-slate-500">
+                Report Date: {new Date(cotData.reportDate).toLocaleDateString()}
+              </p>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              <div>
+                <p className="text-xs font-medium text-slate-500 mb-2">Bias</p>
+                <span className={`inline-flex items-center rounded-lg border px-3 py-1.5 text-sm font-bold ${cotBiasColor(cotData.derivedData.analysis.bias)}`}>
+                  {cotData.derivedData.analysis.bias}
+                </span>
+              </div>
+              <div>
+                <p className="text-xs font-medium text-slate-500 mb-2">Score</p>
+                <p className="text-2xl font-bold text-slate-900">
+                  {cotData.derivedData.analysis.score > 0 ? '+' : ''}{cotData.derivedData.analysis.score}
+                </p>
+              </div>
+            </div>
 
+            {cotData.derivedData.analysis.notes.length > 0 && (
+              <div className="mt-4 pt-4 border-t border-slate-200">
+                <p className="text-xs font-semibold text-slate-700 mb-2 uppercase tracking-wide">Key Insights</p>
+                <ul className="space-y-2">
+                  {cotData.derivedData.analysis.notes.map((note, i) => (
+                    <li key={i} className="text-sm text-slate-600 bg-slate-50 p-3 rounded-lg border border-slate-100">
+                      • {note}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Seasonality Analysis Card */}
+        {seasonality && (
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h3 className="text-lg font-bold text-slate-900 mb-4">Seasonality Analysis</h3>
+            
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              <div>
+                <p className="text-xs font-medium text-slate-500 mb-2">Bias</p>
+                {bias && (
+                  <span className={`inline-flex items-center rounded-lg border px-3 py-1.5 text-sm font-bold ${colorClasses}`}>
+                    {bias}
+                  </span>
+                )}
+              </div>
+              <div>
+                <p className="text-xs font-medium text-slate-500 mb-2">Score</p>
+                <p className="text-2xl font-bold text-slate-900">
+                  {seasonality.score > 0 ? '+' : ''}{seasonality.score.toFixed(2)}
+                </p>
+              </div>
+            </div>
+
+            {seasonality.activeWindows.length > 0 ? (
+              <div className="mt-4 pt-4 border-t border-slate-200">
+                <p className="text-xs font-semibold text-slate-700 mb-3 uppercase tracking-wide">Active Windows</p>
+                <ul className="space-y-2">
+                  {seasonality.activeWindows.map((window, i) => (
+                    <li key={i} className="text-sm text-slate-600 bg-slate-50 p-3 rounded-lg border border-slate-100">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="font-semibold text-slate-900">
+                          {getMonthName(window.startMonth)} - {getMonthName(window.endMonth)}
+                        </span>
+                        <span className={`font-bold ${window.score > 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                          {window.score > 0 ? '+' : ''}{window.score.toFixed(2)}
+                        </span>
+                      </div>
+                      {window.note && (
+                        <p className="text-xs text-slate-500 mt-1">{window.note}</p>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : (
+              <p className="text-sm text-slate-500 mt-4 pt-4 border-t border-slate-200">No active seasonal windows for this month.</p>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* COT Positioning Details - Full Width */}
+      {cotData && (
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h3 className="text-lg font-bold text-slate-900 mb-6">COT Positioning Details</h3>
+
+          <div className="space-y-6">
             {/* Commercials */}
-            <div className="mb-6">
-              <h4 className="text-sm font-semibold text-gray-700 mb-3">Commercials (Smart Money)</h4>
-              <div className="grid grid-cols-4 gap-4">
+            <div className="bg-slate-50 rounded-xl p-5 border border-slate-100">
+              <h4 className="text-sm font-bold text-slate-900 mb-4 flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-blue-500"></span>
+                Commercials (Smart Money)
+              </h4>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 <div>
-                  <p className="text-xs text-gray-500">Long</p>
-                  <p className="text-sm font-semibold text-gray-900">
+                  <p className="text-xs font-medium text-slate-500 mb-1">Long</p>
+                  <p className="text-base font-bold text-slate-900">
                     {cotData.rawData.commercialLong.toLocaleString()}
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-500">Short</p>
-                  <p className="text-sm font-semibold text-gray-900">
+                  <p className="text-xs font-medium text-slate-500 mb-1">Short</p>
+                  <p className="text-base font-bold text-slate-900">
                     {cotData.rawData.commercialShort.toLocaleString()}
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-500">Net Position</p>
-                  <p className={`text-sm font-semibold ${
-                    cotData.derivedData.analysis?.metrics.commercial.netPosition ?? 0 > 0 ? 'text-green-600' : 'text-red-600'
+                  <p className="text-xs font-medium text-slate-500 mb-1">Net Position</p>
+                  <p className={`text-base font-bold ${
+                    (cotData.derivedData.analysis?.metrics.commercial.netPosition ?? cotData.derivedData.commercialMetrics?.netPosition ?? 0) > 0 ? 'text-emerald-600' : 'text-rose-600'
                   }`}>
-                    {cotData.derivedData.analysis 
-                      ? (cotData.derivedData.analysis.metrics.commercial.netPosition > 0 ? '+' : '') + 
-                        cotData.derivedData.analysis.metrics.commercial.netPosition.toLocaleString()
-                      : (cotData.derivedData.commercialMetrics?.netPosition ?? 0).toLocaleString()
-                    }
+                    {(cotData.derivedData.analysis?.metrics.commercial.netPosition ?? cotData.derivedData.commercialMetrics?.netPosition ?? 0) > 0 ? '+' : ''}
+                    {(cotData.derivedData.analysis?.metrics.commercial.netPosition ?? cotData.derivedData.commercialMetrics?.netPosition ?? 0).toLocaleString()}
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-500">COT Index</p>
-                  <p className="text-sm font-semibold text-gray-900">
+                  <p className="text-xs font-medium text-slate-500 mb-1">COT Index</p>
+                  <p className="text-base font-bold text-slate-900">
                     {cotData.derivedData.analysis
                       ? cotData.derivedData.analysis.metrics.commercial.cotIndex.toFixed(1) + '%'
                       : cotData.derivedData.commercialMetrics
@@ -328,86 +306,101 @@ export function AssetDetails({
                         : 'N/A'
                     }
                     {cotData.derivedData.analysis?.metrics.commercial.isExtreme && (
-                      <span className="ml-1 text-xs text-orange-600">(EXTREME)</span>
+                      <span className="ml-1.5 text-xs font-semibold text-orange-600 bg-orange-50 px-1.5 py-0.5 rounded">EXTREME</span>
                     )}
                   </p>
                 </div>
               </div>
               {cotData.derivedData.analysis && (
-                <p className="text-xs text-gray-500 mt-2">
-                  Week-over-week change: {cotData.derivedData.analysis.metrics.commercial.netChange > 0 ? '+' : ''}
-                  {cotData.derivedData.analysis.metrics.commercial.netChange.toLocaleString()} contracts
+                <p className="text-xs text-slate-500 mt-3 pt-3 border-t border-slate-200">
+                  Week-over-week change: <span className="font-semibold text-slate-700">
+                    {cotData.derivedData.analysis.metrics.commercial.netChange > 0 ? '+' : ''}
+                    {cotData.derivedData.analysis.metrics.commercial.netChange.toLocaleString()}
+                  </span> contracts
                 </p>
               )}
             </div>
 
             {/* Non-Commercials */}
             {cotData.rawData.nonCommercialLong !== undefined && cotData.derivedData.analysis && (
-              <div className="mb-6">
-                <h4 className="text-sm font-semibold text-gray-700 mb-3">Non-Commercials (Large Specs)</h4>
-                <div className="grid grid-cols-4 gap-4">
+              <div className="bg-slate-50 rounded-xl p-5 border border-slate-100">
+                <h4 className="text-sm font-bold text-slate-900 mb-4 flex items-center gap-2">
+                  <span className="h-2 w-2 rounded-full bg-purple-500"></span>
+                  Non-Commercials (Large Specs)
+                </h4>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                   <div>
-                    <p className="text-xs text-gray-500">Long</p>
-                    <p className="text-sm font-semibold text-gray-900">
+                    <p className="text-xs font-medium text-slate-500 mb-1">Long</p>
+                    <p className="text-base font-bold text-slate-900">
                       {cotData.rawData.nonCommercialLong.toLocaleString()}
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs text-gray-500">Short</p>
-                    <p className="text-sm font-semibold text-gray-900">
+                    <p className="text-xs font-medium text-slate-500 mb-1">Short</p>
+                    <p className="text-base font-bold text-slate-900">
                       {cotData.rawData.nonCommercialShort?.toLocaleString()}
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs text-gray-500">Net Position</p>
-                    <p className={`text-sm font-semibold ${
-                      cotData.derivedData.analysis.metrics.nonCommercial.netPosition > 0 ? 'text-green-600' : 'text-red-600'
+                    <p className="text-xs font-medium text-slate-500 mb-1">Net Position</p>
+                    <p className={`text-base font-bold ${
+                      cotData.derivedData.analysis.metrics.nonCommercial.netPosition > 0 ? 'text-emerald-600' : 'text-rose-600'
                     }`}>
                       {cotData.derivedData.analysis.metrics.nonCommercial.netPosition > 0 ? '+' : ''}
                       {cotData.derivedData.analysis.metrics.nonCommercial.netPosition.toLocaleString()}
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs text-gray-500">Status</p>
-                    <p className="text-sm font-semibold text-gray-900">
-                      {cotData.derivedData.analysis.metrics.nonCommercial.isExtreme ? 'EXTREME' :
-                       cotData.derivedData.analysis.metrics.nonCommercial.isCrowded ? 'CROWDED' : 'MODERATE'}
+                    <p className="text-xs font-medium text-slate-500 mb-1">Status</p>
+                    <p className="text-base font-bold text-slate-900">
+                      {cotData.derivedData.analysis.metrics.nonCommercial.isExtreme ? (
+                        <span className="text-orange-600 bg-orange-50 px-2 py-0.5 rounded text-xs">EXTREME</span>
+                      ) : cotData.derivedData.analysis.metrics.nonCommercial.isCrowded ? (
+                        <span className="text-amber-600 bg-amber-50 px-2 py-0.5 rounded text-xs">CROWDED</span>
+                      ) : (
+                        'MODERATE'
+                      )}
                     </p>
                   </div>
                 </div>
-                <p className="text-xs text-gray-500 mt-2">
-                  Week-over-week change: {cotData.derivedData.analysis.metrics.nonCommercial.netChange > 0 ? '+' : ''}
-                  {cotData.derivedData.analysis.metrics.nonCommercial.netChange.toLocaleString()} contracts
+                <p className="text-xs text-slate-500 mt-3 pt-3 border-t border-slate-200">
+                  Week-over-week change: <span className="font-semibold text-slate-700">
+                    {cotData.derivedData.analysis.metrics.nonCommercial.netChange > 0 ? '+' : ''}
+                    {cotData.derivedData.analysis.metrics.nonCommercial.netChange.toLocaleString()}
+                  </span> contracts
                 </p>
               </div>
             )}
 
             {/* Small Traders */}
             {cotData.rawData.smallTraderLong !== undefined && cotData.derivedData.analysis && (
-              <div className="mb-6">
-                <h4 className="text-sm font-semibold text-gray-700 mb-3">Small Traders</h4>
+              <div className="bg-slate-50 rounded-xl p-5 border border-slate-100">
+                <h4 className="text-sm font-bold text-slate-900 mb-4 flex items-center gap-2">
+                  <span className="h-2 w-2 rounded-full bg-slate-400"></span>
+                  Small Traders
+                </h4>
                 <div className="grid grid-cols-3 gap-4">
                   <div>
-                    <p className="text-xs text-gray-500">Long</p>
-                    <p className="text-sm font-semibold text-gray-900">
+                    <p className="text-xs font-medium text-slate-500 mb-1">Long</p>
+                    <p className="text-base font-bold text-slate-900">
                       {cotData.rawData.smallTraderLong.toLocaleString()}
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs text-gray-500">Short</p>
-                    <p className="text-sm font-semibold text-gray-900">
+                    <p className="text-xs font-medium text-slate-500 mb-1">Short</p>
+                    <p className="text-base font-bold text-slate-900">
                       {cotData.rawData.smallTraderShort?.toLocaleString()}
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs text-gray-500">Net Position</p>
-                    <p className={`text-sm font-semibold ${
-                      cotData.derivedData.analysis.metrics.smallTrader.netPosition > 0 ? 'text-green-600' : 'text-red-600'
+                    <p className="text-xs font-medium text-slate-500 mb-1">Net Position</p>
+                    <p className={`text-base font-bold ${
+                      cotData.derivedData.analysis.metrics.smallTrader.netPosition > 0 ? 'text-emerald-600' : 'text-rose-600'
                     }`}>
                       {cotData.derivedData.analysis.metrics.smallTrader.netPosition > 0 ? '+' : ''}
                       {cotData.derivedData.analysis.metrics.smallTrader.netPosition.toLocaleString()}
                       {cotData.derivedData.analysis.metrics.smallTrader.isExtreme && (
-                        <span className="ml-1 text-xs text-orange-600">(EXTREME)</span>
+                        <span className="ml-1.5 text-xs font-semibold text-orange-600 bg-orange-50 px-1.5 py-0.5 rounded">EXTREME</span>
                       )}
                     </p>
                   </div>
@@ -417,19 +410,19 @@ export function AssetDetails({
 
             {/* Open Interest */}
             {cotData.rawData.openInterest !== undefined && cotData.derivedData.analysis && (
-              <div>
-                <h4 className="text-sm font-semibold text-gray-700 mb-3">Open Interest</h4>
+              <div className="bg-slate-50 rounded-xl p-5 border border-slate-100">
+                <h4 className="text-sm font-bold text-slate-900 mb-4">Open Interest</h4>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <p className="text-xs text-gray-500">Current</p>
-                    <p className="text-sm font-semibold text-gray-900">
+                    <p className="text-xs font-medium text-slate-500 mb-1">Current</p>
+                    <p className="text-base font-bold text-slate-900">
                       {cotData.rawData.openInterest.toLocaleString()}
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs text-gray-500">Week-over-week</p>
-                    <p className={`text-sm font-semibold ${
-                      cotData.derivedData.analysis.metrics.openInterestChange > 0 ? 'text-green-600' : 'text-red-600'
+                    <p className="text-xs font-medium text-slate-500 mb-1">Week-over-week</p>
+                    <p className={`text-base font-bold ${
+                      cotData.derivedData.analysis.metrics.openInterestChange > 0 ? 'text-emerald-600' : 'text-rose-600'
                     }`}>
                       {cotData.derivedData.analysis.metrics.openInterestChange > 0 ? '+' : ''}
                       {cotData.derivedData.analysis.metrics.openInterestChange.toLocaleString()}
@@ -441,34 +434,35 @@ export function AssetDetails({
 
             {/* COT Index Visual */}
             {cotData.derivedData.commercialMetrics && (
-              <div className="bg-gray-50 p-4 rounded-lg mt-6">
-                <p className="text-xs text-gray-500 mb-2">Commercial COT Index Range</p>
-                <div className="flex items-center gap-2">
-                  <div className="flex-1 bg-gray-200 rounded-full h-2 relative">
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-5 border border-blue-100">
+                <p className="text-xs font-semibold text-slate-700 mb-3">Commercial COT Index</p>
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="flex-1 bg-slate-200 rounded-full h-3 relative overflow-hidden">
                     <div 
-                      className="bg-blue-500 h-2 rounded-full"
+                      className="bg-gradient-to-r from-blue-500 to-indigo-500 h-3 rounded-full transition-all duration-500"
                       style={{ 
                         width: `${Math.max(0, Math.min(100, cotData.derivedData.commercialMetrics.cotIndex))}%` 
                       }}
                     />
                   </div>
-                  <span className="text-xs text-gray-600">
+                  <span className="text-sm font-bold text-slate-900 min-w-[3rem] text-right">
                     {cotData.derivedData.commercialMetrics.cotIndex.toFixed(0)}%
                   </span>
                 </div>
-                <p className="text-xs text-gray-500 mt-2">
+                <p className="text-xs text-slate-600">
                   Range: {cotData.derivedData.commercialMetrics.range.min.toLocaleString()} to {cotData.derivedData.commercialMetrics.range.max.toLocaleString()}
                 </p>
               </div>
             )}
           </div>
         </div>
-      ) : (
-        <div className="rounded-xl border bg-white p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">
-            COT Report
-          </h3>
-          <p className="text-sm text-gray-500">No COT data available. Data will appear after refresh.</p>
+      )}
+
+      {/* No COT Data Message */}
+      {!cotData && (
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h3 className="text-lg font-bold text-slate-900 mb-2">COT Report</h3>
+          <p className="text-sm text-slate-500">No COT data available. Data will appear after refresh.</p>
         </div>
       )}
     </div>
