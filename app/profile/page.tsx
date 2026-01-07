@@ -3,17 +3,61 @@
 import { useAuth } from '@/lib/auth/AuthContext';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import Link from 'next/link';
+import { useState, useEffect } from 'react';
 import { 
   UserCircleIcon, 
   EnvelopeIcon, 
   CalendarIcon,
   CheckCircleIcon,
-  ArrowLeftIcon 
+  ArrowLeftIcon,
+  CreditCardIcon,
+  ClockIcon
 } from '@heroicons/react/24/outline';
+
+interface SubscriptionDetails {
+  hasSubscription: boolean;
+  subscriptionStatus: string | null;
+  subscriptionStartDate: string | null;
+  currentPeriodStart: string | null;
+  nextBillingDate: string | null;
+}
 
 export default function ProfilePage() {
   const { user, signOut } = useAuth();
+  const [subscriptionDetails, setSubscriptionDetails] = useState<SubscriptionDetails | null>(null);
+  const [loadingSubscription, setLoadingSubscription] = useState(true);
 
+  // All hooks must be called before any conditional returns
+  useEffect(() => {
+    const fetchSubscriptionDetails = async () => {
+      if (!user) {
+        setLoadingSubscription(false);
+        return;
+      }
+
+      try {
+        const token = await user.getIdToken();
+        const response = await fetch('/api/subscription/details', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setSubscriptionDetails(data);
+        }
+      } catch (error) {
+        console.error('Error fetching subscription details:', error);
+      } finally {
+        setLoadingSubscription(false);
+      }
+    };
+
+    fetchSubscriptionDetails();
+  }, [user]);
+
+  // Now we can do conditional returns after all hooks
   if (!user) {
     return (
       <ProtectedRoute>
@@ -44,6 +88,45 @@ export default function ProfilePage() {
         minute: '2-digit'
       })
     : 'Never';
+
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return 'N/A';
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
+  };
+
+  const getStatusColor = (status: string | null) => {
+    switch (status) {
+      case 'active':
+        return 'bg-green-100 text-green-700';
+      case 'trialing':
+        return 'bg-blue-100 text-blue-700';
+      case 'past_due':
+        return 'bg-yellow-100 text-yellow-700';
+      case 'canceled':
+        return 'bg-gray-100 text-gray-700';
+      default:
+        return 'bg-gray-100 text-gray-700';
+    }
+  };
+
+  const getStatusLabel = (status: string | null) => {
+    switch (status) {
+      case 'active':
+        return 'Active';
+      case 'trialing':
+        return 'Trial';
+      case 'past_due':
+        return 'Past Due';
+      case 'canceled':
+        return 'Canceled';
+      default:
+        return 'No Subscription';
+    }
+  };
 
   return (
     <ProtectedRoute>
@@ -140,16 +223,66 @@ export default function ProfilePage() {
               <h3 className="text-lg font-semibold text-gray-900 mb-4">
                 Subscription Status
               </h3>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-500">Current Plan</p>
-                  <p className="mt-1 text-lg font-semibold text-gray-900">Professional</p>
-                  <p className="mt-1 text-sm text-gray-500">$99/month</p>
+              {loadingSubscription ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="inline-block h-6 w-6 animate-spin rounded-full border-2 border-solid border-blue-600 border-r-transparent"></div>
+                  <p className="ml-3 text-sm text-gray-600">Loading subscription details...</p>
                 </div>
-                <span className="inline-flex items-center rounded-full bg-green-100 px-3 py-1 text-sm font-medium text-green-700">
-                  Active
-                </span>
-              </div>
+              ) : subscriptionDetails?.hasSubscription ? (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-500">Current Plan</p>
+                      <p className="mt-1 text-lg font-semibold text-gray-900">Premium</p>
+                    </div>
+                    <span className={`inline-flex items-center rounded-full px-3 py-1 text-sm font-medium ${getStatusColor(subscriptionDetails.subscriptionStatus)}`}>
+                      {getStatusLabel(subscriptionDetails.subscriptionStatus)}
+                    </span>
+                  </div>
+                  
+                  <dl className="space-y-3 border-t pt-4">
+                    <div className="flex items-start gap-3">
+                      <CalendarIcon className="h-5 w-5 text-gray-400 mt-0.5" />
+                      <div className="flex-1">
+                        <dt className="text-sm font-medium text-gray-500">Subscription Started</dt>
+                        <dd className="mt-1 text-sm text-gray-900">
+                          {formatDate(subscriptionDetails.subscriptionStartDate)}
+                        </dd>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <ClockIcon className="h-5 w-5 text-gray-400 mt-0.5" />
+                      <div className="flex-1">
+                        <dt className="text-sm font-medium text-gray-500">Next Billing Date</dt>
+                        <dd className="mt-1 text-sm text-gray-900">
+                          {formatDate(subscriptionDetails.nextBillingDate)}
+                        </dd>
+                      </div>
+                    </div>
+                    {subscriptionDetails.currentPeriodStart && (
+                      <div className="flex items-start gap-3">
+                        <CreditCardIcon className="h-5 w-5 text-gray-400 mt-0.5" />
+                        <div className="flex-1">
+                          <dt className="text-sm font-medium text-gray-500">Current Period Started</dt>
+                          <dd className="mt-1 text-sm text-gray-900">
+                            {formatDate(subscriptionDetails.currentPeriodStart)}
+                          </dd>
+                        </div>
+                      </div>
+                    )}
+                  </dl>
+                </div>
+              ) : (
+                <div className="text-center py-4">
+                  <p className="text-sm text-gray-500 mb-4">No active subscription</p>
+                  <Link
+                    href="/subscription"
+                    className="inline-flex items-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 transition-colors"
+                  >
+                    Subscribe Now
+                  </Link>
+                </div>
+              )}
             </div>
 
             {/* Actions */}

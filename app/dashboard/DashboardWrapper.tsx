@@ -1,6 +1,6 @@
 'use client';
 
-import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
+import { SubscriptionProtectedRoute } from '@/components/auth/SubscriptionProtectedRoute';
 import { DashboardContent } from '@/components/DashboardContent';
 import { RefreshButton } from '@/components/RefreshButton';
 import Link from 'next/link';
@@ -15,7 +15,7 @@ export function DashboardWrapper({ assetsData }: DashboardWrapperProps) {
   const { user } = useAuth();
 
   return (
-    <ProtectedRoute>
+    <SubscriptionProtectedRoute>
       <div className="min-h-screen bg-gray-50">
         {/* Header */}
         <header className="border-b bg-white">
@@ -63,6 +63,6 @@ export function DashboardWrapper({ assetsData }: DashboardWrapperProps) {
           </div>
         </main>
       </div>
-    </ProtectedRoute>
+    </SubscriptionProtectedRoute>
   );
 }

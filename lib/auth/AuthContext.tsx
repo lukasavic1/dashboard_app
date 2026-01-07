@@ -38,20 +38,46 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => unsubscribe();
   }, []);
 
+  const checkSubscriptionAndRedirect = async (user: User) => {
+    try {
+      const token = await user.getIdToken();
+      const response = await fetch('/api/subscription/status', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.hasActiveSubscription) {
+          router.push('/dashboard');
+        } else {
+          router.push('/subscription');
+        }
+      } else {
+        // On error, redirect to subscription page to be safe
+        router.push('/subscription');
+      }
+    } catch (error) {
+      console.error('Error checking subscription:', error);
+      // On error, redirect to subscription page to be safe
+      router.push('/subscription');
+    }
+  };
+
   const signIn = async (email: string, password: string) => {
-    await signInWithEmailAndPassword(auth, email, password);
-    router.push('/dashboard');
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    await checkSubscriptionAndRedirect(userCredential.user);
   };
 
   const signUp = async (email: string, password: string) => {
-    await createUserWithEmailAndPassword(auth, email, password);
-    router.push('/dashboard');
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    await checkSubscriptionAndRedirect(userCredential.user);
   };
 
   const signInWithGoogle = async () => {
-    const provider = new GoogleAuthProvider();
-    await signInWithPopup(auth, provider);
-    router.push('/dashboard');
+    const userCredential = await signInWithPopup(auth, new GoogleAuthProvider());
+    await checkSubscriptionAndRedirect(userCredential.user);
   };
 
   const signOut = async () => {

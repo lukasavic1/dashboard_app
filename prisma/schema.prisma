@@ -39,6 +39,17 @@ model SeasonalitySnapshot {
   createdAt DateTime @default(now())
 }
 
+model User {
+  id                String    @id // Firebase UID
+  email             String    @unique
+  stripeCustomerId  String?   @unique
+  stripeSubscriptionId String? @unique
+  subscriptionStatus String?  // active, canceled, past_due, trialing, etc.
+  subscriptionEndsAt DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+}
+
 
 generator client {
   provider = "prisma-client"
