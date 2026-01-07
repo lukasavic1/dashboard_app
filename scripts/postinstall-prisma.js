@@ -2,7 +2,8 @@
 const fs = require('fs');
 const path = require('path');
 
-const prismaOutputPath = path.join(__dirname, '../app/generated/prisma');
+// Check default Prisma output location
+const prismaOutputPath = path.join(__dirname, '../node_modules/.prisma/client');
 const binaryName = 'libquery_engine-rhel-openssl-3.0.x.so.node';
 const binaryPath = path.join(prismaOutputPath, binaryName);
 
@@ -14,13 +15,6 @@ if (fs.existsSync(binaryPath)) {
   const stats = fs.statSync(binaryPath);
   if (stats.isFile()) {
     console.log(`✅ Binary file size: ${(stats.size / 1024 / 1024).toFixed(2)} MB`);
-    
-    // For Vercel, ensure the binary has proper permissions
-    try {
-      fs.chmodSync(binaryPath, 0o755);
-    } catch (err) {
-      // Ignore chmod errors (might not have permissions in some environments)
-    }
   } else {
     console.warn(`⚠️  Binary path exists but is not a file`);
   }
