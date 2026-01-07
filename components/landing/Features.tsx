@@ -7,58 +7,55 @@ import {
 
 const benefits = [
   {
-    name: 'Stop Guessing. Start Knowing.',
+    name: 'COT Signals for Every Market',
     description:
-      'See exactly what commercial traders—the market movers—are doing. No interpretation. No confusion. Just clear bullish or bearish signals based on real positioning data.',
+      'Get bullish/bearish signals for stocks, crude oil, gold, wheat, corn, natural gas, and 50+ markets. Updated every Friday when new COT data releases.',
     icon: ChartBarIcon,
   },
   {
-    name: 'Get In Before the Crowd',
+    name: 'See Commercial Positioning Before Price Moves',
     description:
-      'Commercial positioning predicts price moves. You see the signal before retail catches on, giving you better entries and exits.',
+      'Commercial traders position before retail. When they go long crude oil, price usually follows. You see their moves first.',
     icon: LightBulbIcon,
   },
   {
-    name: 'Match Your Strategy, Not Ours',
+    name: 'Adjust Signals to Your Risk Level',
     description:
-      'Adjust how signals are calculated to fit your risk tolerance and trading style. Conservative? Aggressive? You control it.',
+      'Conservative trader? Tighten the parameters. Aggressive? Loosen them. You control how bullish/bearish the signal needs to be.',
     icon: AdjustmentsHorizontalIcon,
   },
   {
-    name: 'Never Miss a Seasonal Move',
+    name: 'Seasonal Patterns + COT Data',
     description:
-      'Know when historical patterns align with current positioning. Get alerts when everything lines up for a high-probability trade.',
+      'Know when historical seasonality aligns with current commercial positioning. Get alerts when both say "buy" or "sell".',
     icon: BellAlertIcon,
   },
 ];
 
 export function Features() {
   return (
-    <div id="features" className="bg-gray-50 py-24 sm:py-32">
-      <div className="mx-auto max-w-7xl px-6 lg:px-8">
-        <div className="mx-auto max-w-2xl lg:text-center">
-          <h2 className="text-base font-semibold leading-7 text-blue-600">What You Get</h2>
-          <p className="mt-2 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
-            Trade Like You Have Inside Information
-          </p>
-          <p className="mt-6 text-lg leading-8 text-gray-600">
-            The same data institutions use, delivered as actionable signals. No PhD required.
+    <div id="features" className="bg-gray-50 min-h-screen flex flex-col justify-center px-6 lg:px-8 py-20">
+      <div className="mx-auto max-w-6xl w-full">
+        <div className="text-center mb-12">
+          <h2 className="text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl lg:text-6xl">
+            What You Get Every Week
+          </h2>
+          <p className="mt-6 text-xl leading-relaxed text-gray-800 font-medium">
+            COT data for stocks and commodities, turned into clear signals. No interpretation needed.
           </p>
         </div>
-        <div className="mx-auto mt-16 max-w-2xl sm:mt-20 lg:mt-24 lg:max-w-4xl">
-          <dl className="grid max-w-xl grid-cols-1 gap-x-8 gap-y-10 lg:max-w-none lg:grid-cols-2 lg:gap-y-16">
-            {benefits.map((benefit) => (
-              <div key={benefit.name} className="relative pl-16">
-                <dt className="text-base font-semibold leading-7 text-gray-900">
-                  <div className="absolute left-0 top-0 flex h-10 w-10 items-center justify-center rounded-lg bg-blue-600">
-                    <benefit.icon className="h-6 w-6 text-white" aria-hidden="true" />
-                  </div>
-                  {benefit.name}
-                </dt>
-                <dd className="mt-2 text-base leading-7 text-gray-600">{benefit.description}</dd>
-              </div>
-            ))}
-          </dl>
+        <div className="grid grid-cols-1 gap-10 lg:grid-cols-2 lg:gap-12">
+          {benefits.map((benefit) => (
+            <div key={benefit.name} className="relative pl-16">
+              <dt className="text-2xl font-bold leading-tight text-gray-900 mb-3">
+                <div className="absolute left-0 top-0 flex h-14 w-14 items-center justify-center rounded-xl bg-blue-600">
+                  <benefit.icon className="h-7 w-7 text-white" aria-hidden="true" />
+                </div>
+                {benefit.name}
+              </dt>
+              <dd className="text-lg leading-relaxed text-gray-700">{benefit.description}</dd>
+            </div>
+          ))}
         </div>
       </div>
     </div>
