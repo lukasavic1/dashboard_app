@@ -70,13 +70,19 @@ interface AssetDetailsProps {
   assetName: string;
   seasonality: SeasonalityResult | null;
   cotData: CotData | null;
+  finalScore?: number;
+  finalBias?: string;
+  breakdown?: any;
 }
 
-export function AssetDetails({ 
-  assetId, 
-  assetName, 
-  seasonality, 
-  cotData 
+export function AssetDetails({
+  assetId,
+  assetName,
+  seasonality,
+  cotData,
+  finalScore,
+  finalBias,
+  breakdown
 }: AssetDetailsProps) {
   if (!seasonality && !cotData) {
     return (
@@ -88,9 +94,97 @@ export function AssetDetails({
 
   const bias = seasonality ? scoreToBias(seasonality.score) : null;
   const colorClasses = bias ? biasColor(bias) : '';
+  const hasCombinedAnalysis = finalScore !== undefined && finalBias !== undefined && breakdown;
 
   return (
     <div className="space-y-6">
+      {/* Combined Analysis Section */}
+      {hasCombinedAnalysis && (
+        <div className="rounded-xl border bg-white p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            Combined Analysis
+          </h3>
+
+          <div className="grid grid-cols-2 gap-4 mb-6">
+            <div>
+              <p className="text-sm text-gray-500">Final Bias</p>
+              <span className={`inline-flex items-center rounded-full border px-4 py-2 text-base font-bold mt-2 ${cotBiasColor(finalBias as any)}`}>
+                {finalBias}
+              </span>
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Final Score</p>
+              <p className="text-3xl font-bold text-gray-900 mt-2">
+                {finalScore > 0 ? '+' : ''}{finalScore.toFixed(1)}
+              </p>
+            </div>
+          </div>
+
+          {/* Breakdown Table */}
+          <div className="bg-gray-50 rounded-lg p-4">
+            <p className="text-sm font-medium text-gray-700 mb-3">Score Breakdown</p>
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left border-b border-gray-300">
+                  <th className="pb-2 font-medium text-gray-600">Component</th>
+                  <th className="pb-2 font-medium text-gray-600 text-right">Score</th>
+                  <th className="pb-2 font-medium text-gray-600 text-right">Weight</th>
+                  <th className="pb-2 font-medium text-gray-600 text-right">Contribution</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                <tr>
+                  <td className="py-2 text-gray-900">COT</td>
+                  <td className="py-2 text-right font-medium text-gray-900">
+                    {breakdown.cotScore > 0 ? '+' : ''}{breakdown.cotScore}
+                  </td>
+                  <td className="py-2 text-right text-gray-600">70%</td>
+                  <td className="py-2 text-right font-semibold text-gray-900">
+                    {breakdown.cotContribution > 0 ? '+' : ''}{breakdown.cotContribution.toFixed(1)}
+                  </td>
+                </tr>
+                <tr>
+                  <td className="py-2 text-gray-900">Seasonality</td>
+                  <td className="py-2 text-right font-medium text-gray-900">
+                    {breakdown.seasonalityScore > 0 ? '+' : ''}{breakdown.seasonalityScore.toFixed(1)}
+                  </td>
+                  <td className="py-2 text-right text-gray-600">30%</td>
+                  <td className="py-2 text-right font-semibold text-gray-900">
+                    {breakdown.seasonalityContribution > 0 ? '+' : ''}{breakdown.seasonalityContribution.toFixed(1)}
+                  </td>
+                </tr>
+                <tr className="border-t border-gray-300">
+                  <td className="py-2 text-gray-700" colSpan={3}>Base Total</td>
+                  <td className="py-2 text-right font-semibold text-gray-900">
+                    {breakdown.baseScore > 0 ? '+' : ''}{breakdown.baseScore.toFixed(1)}
+                  </td>
+                </tr>
+                {breakdown.convictionBoostApplied && (
+                  <tr>
+                    <td className="py-2 text-gray-700" colSpan={3}>
+                      <span className="flex items-center gap-2">
+                        Conviction Boost
+                        <span className="text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full">
+                          Aligned signals
+                        </span>
+                      </span>
+                    </td>
+                    <td className="py-2 text-right font-semibold text-orange-600">
+                      {breakdown.convictionBoostAmount > 0 ? '+' : ''}{breakdown.convictionBoostAmount.toFixed(1)}
+                    </td>
+                  </tr>
+                )}
+                <tr className="border-t-2 border-gray-400">
+                  <td className="py-2 font-bold text-gray-900" colSpan={3}>Final Score</td>
+                  <td className="py-2 text-right font-bold text-lg text-gray-900">
+                    {finalScore > 0 ? '+' : ''}{finalScore.toFixed(1)}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
       {/* Seasonality Section */}
       {seasonality && (
         <div className="rounded-xl border bg-white p-6">
@@ -227,9 +321,11 @@ export function AssetDetails({
                 <div>
                   <p className="text-xs text-gray-500">COT Index</p>
                   <p className="text-sm font-semibold text-gray-900">
-                    {cotData.derivedData.analysis 
+                    {cotData.derivedData.analysis
                       ? cotData.derivedData.analysis.metrics.commercial.cotIndex.toFixed(1) + '%'
-                      : cotData.derivedData.commercialMetrics?.cotIndex.toFixed(1) + '%' ?? 'N/A'
+                      : cotData.derivedData.commercialMetrics
+                        ? cotData.derivedData.commercialMetrics.cotIndex.toFixed(1) + '%'
+                        : 'N/A'
                     }
                     {cotData.derivedData.analysis?.metrics.commercial.isExtreme && (
                       <span className="ml-1 text-xs text-orange-600">(EXTREME)</span>

@@ -8,21 +8,19 @@ import { SeasonalityResult } from '@/lib/data/seasonality/types';
 
 interface CotData {
   reportDate: string;
-  derivedData: {
-    netPosition: number;
-    cotIndex: number;
-    range: { min: number; max: number };
-  };
-  rawData: {
-    commercialLong: number;
-    commercialShort: number;
-  };
+  derivedData: any; // matches the type from dashboard/page.tsx
+  rawData: any;
 }
 
 interface AssetData {
   assetId: string;
   seasonality: SeasonalityResult | null;
   cotData: CotData | null;
+  finalScore?: number;
+  finalBias?: string;
+  cotScore?: number;
+  cotBias?: string;
+  breakdown?: any;
 }
 
 interface DashboardContentProps {
@@ -47,14 +45,17 @@ export function DashboardContent({ assetsData }: DashboardContentProps) {
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {ASSETS.map(asset => {
             const data = assetsData.find(d => d.assetId === asset.id);
-            const score = data?.seasonality?.score ?? null;
-            
+
             return (
               <AssetCard
                 key={asset.id}
                 assetId={asset.id}
                 assetName={asset.name}
-                seasonalityScore={score}
+                seasonalityScore={data?.seasonality?.score ?? null}
+                finalScore={data?.finalScore}
+                finalBias={data?.finalBias}
+                cotScore={data?.cotScore}
+                cotBias={data?.cotBias}
                 isSelected={selectedAssetId === asset.id}
                 onClick={() => setSelectedAssetId(asset.id)}
               />
@@ -77,6 +78,9 @@ export function DashboardContent({ assetsData }: DashboardContentProps) {
               ...selectedAsset.cotData,
               reportDate: new Date(selectedAsset.cotData.reportDate)
             } : null}
+            finalScore={selectedAsset.finalScore}
+            finalBias={selectedAsset.finalBias}
+            breakdown={selectedAsset.breakdown}
           />
         </div>
       )}

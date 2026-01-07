@@ -26,10 +26,15 @@ export function computeSeasonality(
 
   const score = active.reduce((sum, r) => sum + r.score, 0);
 
+  // Normalize score to [-50, +50] range
+  // Assumes max range of ±1.5, multiply by 33.33 and clamp
+  const normalizedScore = Math.max(-50, Math.min(50, score * (50 / 1.5)));
+
   return {
     assetId,
     date,
     score,
+    normalizedScore,
     activeWindows: active,
   };
 }
