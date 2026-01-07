@@ -47,13 +47,30 @@ export function SubscriptionProtectedRoute({ children }: { children: React.React
           router.push('/subscription');
         }
       } else {
-        // On error, allow access but log it
-        console.error('Failed to check subscription status');
+        // On error, try to parse response for error details
+        let errorData;
+        try {
+          errorData = await response.json();
+        } catch {
+          errorData = { error: 'Unknown error' };
+        }
+        console.error('Failed to check subscription status:', response.status, errorData);
+        
+        // On error, assume no subscription and redirect to subscription page
+        // This prevents infinite loading states
         setHasSubscription(false);
+        if (!isSubscriptionPage) {
+          router.push('/subscription');
+        }
       }
     } catch (error) {
       console.error('Error checking subscription status:', error);
+      // On error, assume no subscription and redirect to subscription page
+      // This prevents infinite loading states
       setHasSubscription(false);
+      if (!isSubscriptionPage) {
+        router.push('/subscription');
+      }
     } finally {
       setCheckingSubscription(false);
     }

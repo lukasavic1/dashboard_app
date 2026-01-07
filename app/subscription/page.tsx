@@ -51,9 +51,15 @@ function SubscriptionContent() {
         if (data.hasActiveSubscription) {
           window.location.href = '/dashboard';
         }
+      } else {
+        // On error, assume no subscription (show subscription page)
+        console.error('Failed to check subscription status:', response.status);
+        setHasSubscription(false);
       }
     } catch (err) {
       console.error('Error checking subscription status:', err);
+      // On error, assume no subscription (show subscription page)
+      setHasSubscription(false);
     } finally {
       setCheckingStatus(false);
     }

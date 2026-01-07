@@ -15,14 +15,38 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const subscriptionStatus = await hasActiveSubscription(userInfo.uid);
-
-    return NextResponse.json(subscriptionStatus);
+    try {
+      const subscriptionStatus = await hasActiveSubscription(userInfo.uid);
+      return NextResponse.json(subscriptionStatus);
+    } catch (dbError: any) {
+      console.error('Database error checking subscription status:', {
+        error: dbError,
+        message: dbError?.message,
+        stack: dbError?.stack,
+        uid: userInfo.uid,
+      });
+      
+      // Return a safe default response instead of 500
+      // This prevents infinite redirect loops
+      return NextResponse.json({
+        hasActiveSubscription: false,
+        subscriptionStatus: null,
+        subscriptionEndsAt: null,
+      });
+    }
   } catch (error: any) {
-    console.error('Error checking subscription status:', error);
-    return NextResponse.json(
-      { error: 'Failed to check subscription status' },
-      { status: 500 }
-    );
+    console.error('Error checking subscription status:', {
+      error,
+      message: error?.message,
+      stack: error?.stack,
+    });
+    
+    // Return a safe default response instead of 500
+    // This prevents infinite redirect loops
+    return NextResponse.json({
+      hasActiveSubscription: false,
+      subscriptionStatus: null,
+      subscriptionEndsAt: null,
+    });
   }
 }
