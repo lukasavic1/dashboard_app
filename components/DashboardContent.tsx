@@ -129,23 +129,19 @@ export function DashboardContent({ assetsData }: DashboardContentProps) {
                 <label className="text-xs font-semibold text-slate-700 uppercase tracking-wide mb-2 block">
                   Filter by Bias
                 </label>
-                <div className="space-y-1.5">
-                  {(['All', 'Strongly Bullish', 'Bullish', 'Neutral', 'Bearish', 'Strongly Bearish', 'No Data'] as BiasFilter[]).map((bias) => (
-                    <button
-                      key={bias}
-                      onClick={() => setBiasFilter(bias)}
-                      className={`
-                        w-full text-left px-3 py-1.5 rounded-lg text-xs font-medium transition-colors
-                        ${biasFilter === bias
-                          ? 'bg-blue-100 text-blue-700 border-2 border-blue-500'
-                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border-2 border-transparent'
-                        }
-                      `}
-                    >
-                      {bias}
-                    </button>
-                  ))}
-                </div>
+                <select
+                  value={biasFilter}
+                  onChange={(e) => setBiasFilter(e.target.value as BiasFilter)}
+                  className="w-full px-3 py-1.5 rounded-lg text-xs font-medium bg-white border-2 border-slate-200 text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="All">All</option>
+                  <option value="Strongly Bullish">Strongly Bullish</option>
+                  <option value="Bullish">Bullish</option>
+                  <option value="Neutral">Neutral</option>
+                  <option value="Bearish">Bearish</option>
+                  <option value="Strongly Bearish">Strongly Bearish</option>
+                  <option value="No Data">No Data</option>
+                </select>
               </div>
 
               {/* Sort Options */}
@@ -170,7 +166,7 @@ export function DashboardContent({ assetsData }: DashboardContentProps) {
               </div>
             </div>
           </div>
-          <div className="space-y-3 max-h-[calc(100vh-24rem)] overflow-y-auto pr-2 custom-scrollbar">
+          <div className="space-y-2 max-h-[calc(100vh-20rem)] overflow-y-auto pr-2 custom-scrollbar">
             {sortedAssets.map(({ asset, data }) => (
               <AssetCard
                 key={asset.id}

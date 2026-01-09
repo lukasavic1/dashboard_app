@@ -11,3 +11,77 @@ export const ASSETS = [
   { id: "ZN", name: "10Y Notes", cotCode: "002602", seasonality: false },
   { id: "ZB", name: "30Y Bonds", cotCode: "020601", seasonality: false },
 ];
+
+export const TDW_BIAS: Record<string, Record<string, "bullish" | "bearish" | "neutral">> = {
+  CL: {
+    Monday: "bullish",
+    Tuesday: "bullish",
+    Wednesday: "neutral",
+    Thursday: "bearish",
+    Friday: "bearish",
+  },
+
+  GC: {
+    Monday: "bearish",
+    Tuesday: "neutral",
+    Wednesday: "bullish",
+    Thursday: "bullish",
+    Friday: "neutral",
+  },
+
+  SI: {
+    Monday: "bearish",
+    Tuesday: "neutral",
+    Wednesday: "bullish",
+    Thursday: "bullish",
+    Friday: "neutral",
+  },
+
+  ZC: {
+    Monday: "bullish",
+    Tuesday: "bullish",
+    Wednesday: "bullish",
+    Thursday: "bearish",
+    Friday: "bearish",
+  },
+
+  ZW: {
+    Monday: "bullish",
+    Tuesday: "bullish",
+    Wednesday: "bullish",
+    Thursday: "bearish",
+    Friday: "bearish",
+  },
+
+  ZS: {
+    Monday: "bullish",
+    Tuesday: "bullish",
+    Wednesday: "bullish",
+    Thursday: "bearish",
+    Friday: "bearish",
+  },
+
+  KC: {
+    Monday: "neutral",
+    Tuesday: "bullish",
+    Wednesday: "bullish",
+    Thursday: "neutral",
+    Friday: "bearish",
+  },
+
+  ZN: {
+    Monday: "bullish",
+    Tuesday: "neutral",
+    Wednesday: "bearish",
+    Thursday: "bearish",
+    Friday: "neutral",
+  },
+
+  ZB: {
+    Monday: "bullish",
+    Tuesday: "neutral",
+    Wednesday: "bearish",
+    Thursday: "bearish",
+    Friday: "neutral",
+  },
+};

@@ -1,7 +1,9 @@
 'use client';
 
+import { useState, useEffect, useRef } from 'react';
 import { SeasonalityResult } from '@/lib/data/seasonality/types';
 import { scoreToBias, biasColor } from '@/lib/data/seasonality/utils';
+import { TDW_BIAS } from '@/lib/assets/assets';
 
 interface CotAnalysis {
   score: number;
@@ -65,6 +67,163 @@ function cotBiasColor(bias: CotAnalysis['bias'] | string): string {
     default:
       return 'text-slate-600 bg-slate-50 border-slate-200';
   }
+}
+
+function getDailyBiasColor(bias: 'bullish' | 'bearish' | 'neutral'): string {
+  switch (bias) {
+    case 'bullish':
+      return 'text-emerald-700 bg-emerald-50 border-emerald-200';
+    case 'bearish':
+      return 'text-rose-600 bg-rose-50 border-rose-200';
+    case 'neutral':
+      return 'text-amber-700 bg-amber-50 border-amber-200';
+    default:
+      return 'text-slate-600 bg-slate-50 border-slate-200';
+  }
+}
+
+function getDailyBiasLabel(bias: 'bullish' | 'bearish' | 'neutral'): string {
+  switch (bias) {
+    case 'bullish':
+      return 'Bullish';
+    case 'bearish':
+      return 'Bearish';
+    case 'neutral':
+      return 'Neutral';
+    default:
+      return 'Unknown';
+  }
+}
+
+interface DailyTendencyCardProps {
+  assetId: string;
+}
+
+function DailyTendencyCard({ assetId }: DailyTendencyCardProps) {
+  const [showTooltip, setShowTooltip] = useState(false);
+  const tooltipRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const dailyBias = TDW_BIAS[assetId];
+  
+  // Close tooltip when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        showTooltip &&
+        tooltipRef.current &&
+        buttonRef.current &&
+        !tooltipRef.current.contains(event.target as Node) &&
+        !buttonRef.current.contains(event.target as Node)
+      ) {
+        setShowTooltip(false);
+      }
+    }
+
+    if (showTooltip) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
+    }
+  }, [showTooltip]);
+  
+  if (!dailyBias) {
+    return null;
+  }
+
+  const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'] as const;
+  
+  // Get today's day name
+  const getTodayDayName = (): string => {
+    const today = new Date();
+    const dayIndex = today.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    return dayNames[dayIndex];
+  };
+  
+  const todayDayName = getTodayDayName();
+  const isToday = (day: string) => day === todayDayName;
+
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="flex items-center gap-2 mb-4">
+        <h3 className="text-lg font-bold text-slate-900">Daily Tendency</h3>
+        <div className="relative">
+          <button
+            ref={buttonRef}
+            type="button"
+            className="flex items-center justify-center w-5 h-5 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-600 hover:text-slate-700 transition-colors text-xs font-bold focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
+            onMouseEnter={() => setShowTooltip(true)}
+            onMouseLeave={() => setShowTooltip(false)}
+            onClick={() => setShowTooltip(!showTooltip)}
+            aria-label="Daily tendency explanation"
+            aria-expanded={showTooltip}
+          >
+            ?
+          </button>
+          {showTooltip && (
+            <div
+              ref={tooltipRef}
+              className="absolute left-0 top-full mt-2 w-72 p-3 bg-slate-900 text-white text-xs rounded-lg shadow-xl z-50"
+              role="tooltip"
+            >
+              <p className="mb-2 font-semibold">Historical Tendencies</p>
+              <p className="leading-relaxed">
+                These daily tendencies are based on historical patterns and do not guarantee future performance. 
+                Market conditions can change, and past performance is not indicative of future results.
+              </p>
+              <div className="absolute left-4 -top-1 w-0 h-0 border-l-4 border-r-4 border-b-4 border-transparent border-b-slate-900"></div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="space-y-2.5">
+        {days.map((day) => {
+          const bias = dailyBias[day];
+          if (!bias) return null;
+          
+          const isTodayDay = isToday(day);
+          
+          return (
+            <div
+              key={day}
+              className={`
+                flex items-center justify-between p-3 rounded-lg border transition-all relative
+                ${isTodayDay
+                  ? 'bg-blue-50 border-blue-300 shadow-md ring-2 ring-blue-400/50'
+                  : 'bg-slate-50/50 hover:bg-slate-50 border-slate-200'
+                }
+              `}
+            >
+              {isTodayDay && (
+                <div className="absolute -top-1.5 -left-1.5 bg-blue-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded shadow-sm">
+                  TODAY
+                </div>
+              )}
+              <div className="flex items-center gap-2">
+                <span className={`text-sm font-medium ${isTodayDay ? 'text-blue-900 font-semibold' : 'text-slate-700'}`}>
+                  {day}
+                </span>
+                {isTodayDay && (
+                  <span className="h-2 w-2 rounded-full bg-blue-500 animate-pulse"></span>
+                )}
+              </div>
+              <span
+                className={`
+                  inline-flex items-center rounded-lg border px-3 py-1 text-xs font-semibold
+                  ${getDailyBiasColor(bias)}
+                  ${isTodayDay ? 'ring-1 ring-blue-400/30' : ''}
+                `}
+              >
+                {getDailyBiasLabel(bias)}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
 }
 
 interface AssetDetailsProps {
@@ -260,6 +419,9 @@ export function AssetDetails({
             )}
           </div>
         )}
+
+        {/* Daily Tendency Card */}
+        {TDW_BIAS[assetId] && <DailyTendencyCard assetId={assetId} />}
       </div>
 
       {/* COT Positioning Details - Full Width */}
