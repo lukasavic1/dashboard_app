@@ -7,6 +7,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useAuth } from '@/lib/auth/AuthContext';
 import { UserCircleIcon } from '@heroicons/react/24/outline';
+import { useEffect, useRef } from 'react';
 
 interface DashboardWrapperProps {
   assetsData: any[];
@@ -14,6 +15,41 @@ interface DashboardWrapperProps {
 
 export function DashboardWrapper({ assetsData }: DashboardWrapperProps) {
   const { user } = useAuth();
+  const hasCheckedRef = useRef(false);
+
+  // Check if data is stale on mount and trigger background refresh if needed
+  useEffect(() => {
+    // Only check once per mount
+    if (hasCheckedRef.current) return;
+    hasCheckedRef.current = true;
+
+    // Check if data is stale (non-blocking, runs in background)
+    const checkAndRefresh = async () => {
+      try {
+        const response = await fetch('/api/check-stale');
+        const data = await response.json();
+
+        if (data.stale) {
+          console.log('Data is stale, triggering background refresh...');
+          // Trigger the cron endpoint in the background (non-blocking)
+          // This will check for newer reports and refresh if needed
+          fetch('/api/cron/refresh-cot', {
+            method: 'GET',
+          }).catch((error) => {
+            console.error('Background refresh failed:', error);
+            // Silently fail - user can manually refresh if needed
+          });
+        }
+      } catch (error) {
+        console.error('Error checking stale data:', error);
+        // Silently fail - don't interrupt user experience
+      }
+    };
+
+    // Small delay to not interfere with initial page load
+    const timeoutId = setTimeout(checkAndRefresh, 1000);
+    return () => clearTimeout(timeoutId);
+  }, []);
 
   return (
     <SubscriptionProtectedRoute>

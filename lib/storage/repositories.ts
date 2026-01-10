@@ -93,3 +93,55 @@ export async function saveSeasonalitySnapshot(
     },
   });
 }
+
+/**
+ * Gets the latest report date across all assets in the database
+ * Returns null if no reports exist
+ */
+export async function getLatestReportDateInDb(): Promise<Date | null> {
+  const latest = await prisma.cotSnapshot.findFirst({
+    orderBy: { reportDate: "desc" },
+    select: { reportDate: true },
+  });
+
+  return latest?.reportDate ?? null;
+}
+
+/**
+ * Checks if a report date is newer than what we have in the database
+ * Returns true if the report is newer, false if it's the same or older
+ */
+export async function isReportDateNewer(reportDate: Date): Promise<boolean> {
+  const latestInDb = await getLatestReportDateInDb();
+  
+  if (!latestInDb) {
+    // No data in DB, so any report is considered newer
+    return true;
+  }
+
+  // Compare dates (ignore time, only compare dates)
+  const reportDateOnly = new Date(reportDate);
+  reportDateOnly.setHours(0, 0, 0, 0);
+  
+  const latestDateOnly = new Date(latestInDb);
+  latestDateOnly.setHours(0, 0, 0, 0);
+
+  return reportDateOnly.getTime() > latestDateOnly.getTime();
+}
+
+/**
+ * Checks if any asset has stale data (older than threshold)
+ * Returns true if at least one asset needs updating
+ */
+export async function hasAnyStaleData(): Promise<boolean> {
+  const latestInDb = await getLatestReportDateInDb();
+  
+  if (!latestInDb) {
+    return true; // No data at all, consider it stale
+  }
+
+  const ageDays =
+    (Date.now() - latestInDb.getTime()) / (1000 * 60 * 60 * 24);
+
+  return ageDays > COT_STALE_DAYS;
+}

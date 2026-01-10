@@ -17,12 +17,12 @@ model Asset {
 }
 
 model CotSnapshot {
-  id         String   @id @default(uuid())
-  assetId    String
-  reportDate DateTime
-  rawData    Json
+  id          String   @id @default(uuid())
+  assetId     String
+  reportDate  DateTime
+  rawData     Json
   derivedData Json
-  createdAt  DateTime @default(now())
+  createdAt   DateTime @default(now())
 
   // This relates back to the Asset model above
   Asset Asset @relation(fields: [assetId], references: [id])
@@ -40,16 +40,28 @@ model SeasonalitySnapshot {
 }
 
 model User {
-  id                String    @id // Firebase UID
-  email             String    @unique
-  stripeCustomerId  String?   @unique
-  stripeSubscriptionId String? @unique
-  subscriptionStatus String?  // active, canceled, past_due, trialing, etc.
-  subscriptionEndsAt DateTime?
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  id                   String    @id // Firebase UID
+  email                String    @unique
+  stripeCustomerId     String?   @unique
+  stripeSubscriptionId String?   @unique
+  subscriptionStatus   String? // active, canceled, past_due, trialing, etc.
+  subscriptionEndsAt   DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  // Track manual refresh attempts for rate limiting
+  RefreshAttempt RefreshAttempt[]
 }
 
+model RefreshAttempt {
+  id        String   @id @default(uuid())
+  userId    String
+  createdAt DateTime @default(now())
+
+  User User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
 
 generator client {
   provider      = "prisma-client-js"

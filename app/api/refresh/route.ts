@@ -6,13 +6,17 @@ import {
 } from "@/lib/data/cot/parse";
 import { computeCotAnalysis } from "@/lib/processing/cot/analysis";
 import { generateCotNotes } from "@/lib/processing/cot/llm";
-import { isCotStale, saveCotSnapshot } from "@/lib/storage/repositories";
+import { isCotStale, saveCotSnapshot, isReportDateNewer, getLatestReportDateInDb } from "@/lib/storage/repositories";
 import { computeSeasonality } from "@/lib/data/seasonality/compute";
 import {
   isSeasonalityStale,
   saveSeasonalitySnapshot,
 } from "@/lib/storage/repositories";
 import { prisma } from "@/lib/storage/prisma";
+import { NextRequest } from "next/server";
+import { verifyFirebaseToken } from "@/lib/auth/verify";
+import { canUserRefresh, recordRefreshAttempt, getRemainingRefreshes } from "@/lib/storage/refreshLimits";
+import { getOrCreateUser } from "@/lib/storage/subscription";
 
 /**
  * Validates that the latest report is recent enough to be considered fresh.
@@ -39,7 +43,49 @@ function getDayName(date: Date): string {
   return date.toLocaleDateString('en-US', { weekday: 'long' });
 }
 
-export async function POST() {
+export async function POST(request: NextRequest) {
+  // Check if this is a manual refresh (requires authentication and rate limiting)
+  // Cron jobs can bypass this by calling directly
+  const authHeader = request.headers.get("authorization");
+  const isCronJob = request.headers.get("x-vercel-cron") === "1" || 
+                    request.headers.get("x-cron-internal") === "1";
+  
+  let userId: string | null = null;
+  
+  if (!isCronJob) {
+    // Manual refresh - require authentication and check rate limit
+    const userInfo = await verifyFirebaseToken(authHeader);
+    
+    if (!userInfo) {
+      return Response.json(
+        { 
+          status: "error", 
+          message: "Unauthorized. Please log in to refresh data.",
+        },
+        { status: 401 }
+      );
+    }
+    
+    userId = userInfo.uid;
+    
+    // Ensure user exists in database
+    await getOrCreateUser(userId, userInfo.email || "");
+    
+    // Check rate limit
+    const canRefresh = await canUserRefresh(userId);
+    if (!canRefresh) {
+      const remaining = await getRemainingRefreshes(userId);
+      return Response.json(
+        {
+          status: "error",
+          message: `Rate limit exceeded. You can refresh up to 3 times per day. Remaining today: ${remaining}`,
+          rateLimited: true,
+          remainingRefreshes: remaining,
+        },
+        { status: 429 }
+      );
+    }
+  }
   const currentYear = new Date().getFullYear();
   const latestFriday = getLatestFridayDate();
   
@@ -93,6 +139,40 @@ export async function POST() {
     });
   }
 
+  // Find the latest report date across all assets in the fetched file
+  let latestReportDateInFile: Date | null = null;
+  for (const asset of ASSETS) {
+    if (!asset.cotCode) continue;
+    const history = parseCotForMarket(rawFile, asset.cotCode);
+    if (history.length > 0) {
+      const latestReport = history[history.length - 1];
+      if (!latestReportDateInFile || latestReport.reportDate > latestReportDateInFile) {
+        latestReportDateInFile = latestReport.reportDate;
+      }
+    }
+  }
+
+  // Check if the fetched report is actually newer than what we have
+  if (latestReportDateInFile) {
+    const latestInDb = await getLatestReportDateInDb();
+    const isNewer = await isReportDateNewer(latestReportDateInFile);
+    
+    if (!isNewer && latestInDb) {
+      const latestInDbStr = latestInDb.toISOString().split('T')[0];
+      const latestInFileStr = latestReportDateInFile.toISOString().split('T')[0];
+      console.log(
+        `Skipping refresh - latest report in DB (${latestInDbStr}) is same or newer than fetched (${latestInFileStr})`
+      );
+      return Response.json({
+        status: "skipped",
+        message: "No newer report available",
+        latestInDb: latestInDbStr,
+        latestInFile: latestInFileStr,
+        results: [],
+      });
+    }
+  }
+
   for (const asset of ASSETS) {
     if (!asset.cotCode) continue;
 
@@ -113,6 +193,28 @@ export async function POST() {
       const latestReport = history[history.length - 1];
       const reportDateStr = latestReport.reportDate.toISOString().split('T')[0];
       const reportDayName = getDayName(latestReport.reportDate);
+
+      // Check if this specific asset's report is newer than what we have
+      const assetLatestInDb = await prisma.cotSnapshot.findFirst({
+        where: { assetId: asset.id },
+        orderBy: { reportDate: "desc" },
+        select: { reportDate: true },
+      });
+
+      if (assetLatestInDb) {
+        const reportDateOnly = new Date(latestReport.reportDate);
+        reportDateOnly.setHours(0, 0, 0, 0);
+        const dbDateOnly = new Date(assetLatestInDb.reportDate);
+        dbDateOnly.setHours(0, 0, 0, 0);
+
+        // Skip if we already have this report or a newer one
+        if (reportDateOnly.getTime() <= dbDateOnly.getTime()) {
+          console.log(
+            `Skipping ${asset.id} - already have report for ${reportDateStr} or newer`
+          );
+          continue;
+        }
+      }
       
       // Validate the report is recent (within last 10 days)
       // This handles:
@@ -219,6 +321,18 @@ export async function POST() {
         error: error instanceof Error ? error.message : "Unknown error",
       });
     }
+  }
+
+  // Record manual refresh attempt if this was a user-initiated refresh
+  if (userId) {
+    await recordRefreshAttempt(userId);
+    const remaining = await getRemainingRefreshes(userId);
+    return Response.json({ 
+      status: "ok", 
+      results,
+      expectedDate: latestFriday.toISOString().split('T')[0],
+      remainingRefreshes: remaining,
+    });
   }
 
   return Response.json({ 
