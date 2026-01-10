@@ -20,32 +20,32 @@ export function DashboardWrapper({ assetsData }: DashboardWrapperProps) {
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50">
         {/* Header */}
         <header className="border-b border-slate-200/60 bg-white/80 backdrop-blur-sm sticky top-0 z-10 shadow-sm">
-          <div className="mx-auto max-w-[1920px] px-4 sm:px-6 lg:px-8 py-5 sm:py-6">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <div className="flex items-center gap-3 sm:gap-4">
+          <div className="mx-auto max-w-[1920px] px-4 sm:px-6 lg:px-8 py-3 sm:py-5 lg:py-6">
+            <div className="flex items-center justify-between gap-2 sm:gap-3">
+              {/* Logo and Title */}
+              <div className="flex items-center gap-2 sm:gap-2.5 lg:gap-4 min-w-0 flex-1">
                 <Image
                   src="/logo.png"
                   alt="Logo"
                   width={250}
                   height={250}
-                  className="h-8 w-8 sm:h-10 sm:w-10 object-contain flex-shrink-0"
+                  className="h-10 w-10 sm:h-14 sm:w-14 lg:h-16 lg:w-16 object-contain flex-shrink-0"
                   priority
                 />
-                <div className="flex flex-col">
-                  <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 bg-clip-text text-transparent tracking-tight leading-tight">
-                    Market Fundamentals Dashboard
-                  </h1>
-                </div>
+                <h1 className="text-base sm:text-2xl lg:text-3xl xl:text-4xl font-bold bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 bg-clip-text text-transparent tracking-tight leading-tight truncate min-w-0">
+                  <span className="hidden min-[420px]:inline">Market Fundamentals Dashboard</span>
+                  <span className="min-[420px]:hidden">Fundamentals</span>
+                </h1>
               </div>
-              <div className="flex items-center gap-3 w-full sm:w-auto">
-                <div className="flex-1 sm:flex-initial">
-                  <RefreshButton />
-                </div>
+              {/* Actions: Refresh and Profile */}
+              <div className="flex items-center gap-1.5 sm:gap-2 lg:gap-3 flex-shrink-0">
+                <RefreshButton />
                 <Link
                   href="/profile"
-                  className="flex items-center gap-2 rounded-lg px-3 sm:px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 transition-colors border border-slate-200"
+                  className="flex items-center justify-center gap-1.5 sm:gap-2 rounded-lg p-2 sm:px-3 sm:py-2 lg:px-4 text-xs sm:text-sm font-medium text-slate-700 hover:bg-slate-100 transition-colors border border-slate-200 whitespace-nowrap"
+                  aria-label="Profile"
                 >
-                  <UserCircleIcon className="h-5 w-5" />
+                  <UserCircleIcon className="h-4 w-4 sm:h-5 sm:w-5" />
                   <span className="hidden sm:inline truncate max-w-[150px]">{user?.email}</span>
                 </Link>
               </div>

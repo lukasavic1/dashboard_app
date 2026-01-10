@@ -46,23 +46,25 @@ export function RefreshButton() {
   };
 
   return (
-    <div className="flex flex-col items-end gap-2">
+    <div className="relative flex items-center">
       <button
         onClick={handleRefresh}
         disabled={isRefreshing}
-        className="inline-flex items-center gap-2 rounded-lg bg-black px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 transition disabled:opacity-50 disabled:cursor-not-allowed"
+        className="inline-flex items-center justify-center gap-1.5 sm:gap-2 rounded-lg bg-black p-2 sm:px-3 sm:py-2 lg:px-4 text-xs sm:text-sm font-medium text-white hover:bg-gray-800 transition disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+        aria-label={isRefreshing ? 'Refreshing...' : 'Refresh Data'}
       >
-        <ArrowPathIcon className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-        {isRefreshing ? 'Refreshing...' : 'Refresh Data'}
+        <ArrowPathIcon className={`h-4 w-4 sm:h-4 sm:w-4 flex-shrink-0 ${isRefreshing ? 'animate-spin' : ''}`} />
+        <span className="hidden sm:inline">{isRefreshing ? 'Refreshing...' : 'Refresh Data'}</span>
       </button>
       
       {message && (
         <div
-          className={`text-xs px-3 py-1 rounded ${
+          className={`absolute top-full right-0 mt-1 z-50 text-xs px-2 py-1 rounded shadow-lg max-w-[200px] sm:max-w-none ${
             message.type === 'success'
-              ? 'bg-green-100 text-green-700'
-              : 'bg-red-100 text-red-700'
+              ? 'bg-green-100 text-green-700 border border-green-200'
+              : 'bg-red-100 text-red-700 border border-red-200'
           }`}
+          style={{ wordBreak: 'break-word' }}
         >
           {message.text}
         </div>
