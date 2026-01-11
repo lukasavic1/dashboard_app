@@ -103,7 +103,7 @@ export function Hero() {
       <div className="mx-auto max-w-5xl w-full py-20 relative z-10">
         <div className="text-center">
           <h1 className="text-5xl font-bold tracking-tight text-gray-900 sm:text-6xl lg:text-7xl leading-tight">
-            See What Commercial Traders Are Doing in Stocks & Commodities
+            Gold, Crude Oil, and more. Fully analyzed
           </h1>
           <p className="mt-8 text-xl leading-relaxed text-gray-800 sm:text-2xl font-medium">
             Every Friday, commercial traders report their positions. We turn that data into bullish/bearish signals for stocks, crude oil, gold, and 50+ markets. No interpretation needed.
