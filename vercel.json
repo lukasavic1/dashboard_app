@@ -3,10 +3,6 @@
     {
       "path": "/api/cron/refresh-cot",
       "schedule": "35 20 * * 2,4,5"
-    },
-    {
-      "path": "/api/cron/refresh-cot",
-      "schedule": "40,45,50,55 20 * * 2,4,5"
     }
   ]
 }
