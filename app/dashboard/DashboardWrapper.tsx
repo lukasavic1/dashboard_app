@@ -4,12 +4,16 @@ import { SubscriptionProtectedRoute } from '@/components/auth/SubscriptionProtec
 import { DashboardContent } from '@/components/DashboardContent';
 import { RefreshButton } from '@/components/RefreshButton';
 import { ScoreWeightSlider } from '@/components/ScoreWeightSlider';
+import { MobileSettingsModal } from '@/components/MobileSettingsModal';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useAuth } from '@/lib/auth/AuthContext';
-import { UserCircleIcon } from '@heroicons/react/24/outline';
-import { useEffect, useRef, useState } from 'react';
+import { UserCircleIcon, Cog6ToothIcon } from '@heroicons/react/24/outline';
+import { useEffect, useRef, useState, useMemo } from 'react';
 import { ScoringConfig } from '@/lib/processing/scoring/types';
+
+type BiasFilter = 'All' | 'Strongly Bullish' | 'Bullish' | 'Neutral' | 'Bearish' | 'Strongly Bearish' | 'No Data';
+type SortOption = 'bias' | 'score' | 'name';
 
 interface DashboardWrapperProps {
   assetsData: any[];
@@ -22,6 +26,21 @@ export function DashboardWrapper({ assetsData }: DashboardWrapperProps) {
     cotWeight: 0.7,
     seasonalityWeight: 0.3,
   });
+  const [biasFilter, setBiasFilter] = useState<BiasFilter>('All');
+  const [sortOption, setSortOption] = useState<SortOption>('bias');
+  const [showMobileSettings, setShowMobileSettings] = useState(false);
+
+  // Calculate filtered count for mobile modal
+  const filteredCount = useMemo(() => {
+    if (biasFilter === 'All') {
+      return assetsData.length;
+    }
+    // Count assets that match the filter
+    return assetsData.filter(asset => {
+      const finalBias = asset.finalBias;
+      return finalBias === biasFilter;
+    }).length;
+  }, [assetsData, biasFilter]);
 
   // Check if data is stale on mount and trigger background refresh if needed
   useEffect(() => {
@@ -79,12 +98,20 @@ export function DashboardWrapper({ assetsData }: DashboardWrapperProps) {
                   <span className="min-[420px]:hidden">Fundamentals</span>
                 </h1>
               </div>
-              {/* Actions: Score Weights, Refresh and Profile */}
+              {/* Actions: Score Weights, Refresh, Settings (mobile), and Profile */}
               <div className="flex items-center gap-1.5 sm:gap-2 lg:gap-3 flex-shrink-0">
                 <div className="hidden md:block">
                   <ScoreWeightSlider onWeightsChange={setScoreWeights} />
                 </div>
                 <RefreshButton />
+                {/* Mobile Settings Button */}
+                <button
+                  onClick={() => setShowMobileSettings(true)}
+                  className="md:hidden inline-flex items-center justify-center rounded-lg bg-slate-100 p-2 text-slate-700 hover:bg-slate-200 transition-colors"
+                  aria-label="Settings"
+                >
+                  <Cog6ToothIcon className="h-5 w-5" />
+                </button>
                 <Link
                   href="/profile"
                   className="flex items-center justify-center gap-1.5 sm:gap-2 rounded-lg p-2 sm:px-3 sm:py-2 lg:px-4 text-xs sm:text-sm font-medium text-slate-700 hover:bg-slate-100 transition-colors border border-slate-200 whitespace-nowrap"
@@ -98,15 +125,31 @@ export function DashboardWrapper({ assetsData }: DashboardWrapperProps) {
           </div>
         </header>
 
-        {/* Mobile Score Weights Slider */}
-        <div className="md:hidden mx-auto max-w-[1920px] px-4 sm:px-6 lg:px-8 py-2 border-b border-slate-200/60 bg-white/80 backdrop-blur-sm">
-          <ScoreWeightSlider onWeightsChange={setScoreWeights} />
-        </div>
-
         {/* Main */}
         <main className="mx-auto max-w-[1920px] px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-          <DashboardContent assetsData={assetsData} scoreWeights={scoreWeights} />
+          <DashboardContent 
+            assetsData={assetsData} 
+            scoreWeights={scoreWeights}
+            biasFilter={biasFilter}
+            onBiasFilterChange={setBiasFilter}
+            sortOption={sortOption}
+            onSortOptionChange={setSortOption}
+          />
         </main>
+
+        {/* Mobile Settings Modal */}
+        <MobileSettingsModal
+          isOpen={showMobileSettings}
+          onClose={() => setShowMobileSettings(false)}
+          scoreWeights={scoreWeights}
+          onScoreWeightsChange={setScoreWeights}
+          biasFilter={biasFilter}
+          onBiasFilterChange={setBiasFilter}
+          sortOption={sortOption}
+          onSortOptionChange={setSortOption}
+          filteredCount={filteredCount}
+          totalCount={assetsData.length}
+        />
       </div>
     </SubscriptionProtectedRoute>
   );

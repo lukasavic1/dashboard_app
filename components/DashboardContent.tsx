@@ -26,13 +26,17 @@ interface AssetData {
   breakdown?: any;
 }
 
+type BiasFilter = 'All' | 'Strongly Bullish' | 'Bullish' | 'Neutral' | 'Bearish' | 'Strongly Bearish' | 'No Data';
+type SortOption = 'bias' | 'score' | 'name';
+
 interface DashboardContentProps {
   assetsData: AssetData[];
   scoreWeights: { cotWeight: number; seasonalityWeight: number };
+  biasFilter: BiasFilter;
+  onBiasFilterChange: (filter: BiasFilter) => void;
+  sortOption: SortOption;
+  onSortOptionChange: (sort: SortOption) => void;
 }
-
-type BiasFilter = 'All' | 'Strongly Bullish' | 'Bullish' | 'Neutral' | 'Bearish' | 'Strongly Bearish' | 'No Data';
-type SortOption = 'bias' | 'score' | 'name';
 
 // Bias order for sorting: from most bullish to most bearish
 const BIAS_ORDER: Record<string, number> = {
@@ -44,12 +48,17 @@ const BIAS_ORDER: Record<string, number> = {
   'No Data': 5,
 };
 
-export function DashboardContent({ assetsData, scoreWeights }: DashboardContentProps) {
+export function DashboardContent({ 
+  assetsData, 
+  scoreWeights,
+  biasFilter,
+  onBiasFilterChange,
+  sortOption,
+  onSortOptionChange,
+}: DashboardContentProps) {
   const [selectedAssetId, setSelectedAssetId] = useState<string | null>(
     assetsData.length > 0 ? assetsData[0].assetId : null
   );
-  const [biasFilter, setBiasFilter] = useState<BiasFilter>('All');
-  const [sortOption, setSortOption] = useState<SortOption>('bias');
 
   // Recalculate scores with custom weights
   const recalculatedAssetsData = useMemo(() => {
@@ -151,10 +160,44 @@ export function DashboardContent({ assetsData, scoreWeights }: DashboardContentP
     }
   }, [sortedAssets, selectedAssetId]);
 
+  // Format asset option label for dropdown
+  const formatAssetOptionLabel = ({ asset: assetInfo, data }: typeof sortedAssets[0]) => {
+    const bias = data?.finalBias ?? 'No Data';
+    const score = data?.finalScore;
+    
+    if (score !== undefined && score !== -Infinity) {
+      const scoreStr = score > 0 ? `+${score.toFixed(1)}` : score.toFixed(1);
+      return `${assetInfo.name} (${assetInfo.id}) - ${bias} ${scoreStr}`;
+    }
+    return `${assetInfo.name} (${assetInfo.id}) - ${bias}`;
+  };
+
   return (
     <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
-      {/* Sidebar - Asset Cards */}
-      <aside className="lg:w-80 xl:w-96 flex-shrink-0">
+      {/* Mobile Asset Dropdown */}
+      <div className="lg:hidden space-y-2">
+        <label className="text-sm font-semibold text-slate-700 uppercase tracking-wide block">
+          Select Asset
+        </label>
+        <select
+          value={selectedAssetId || ''}
+          onChange={(e) => setSelectedAssetId(e.target.value || null)}
+          className="w-full px-4 py-3 rounded-xl text-sm font-medium bg-white border-2 border-slate-200 text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+        >
+          {sortedAssets.length === 0 ? (
+            <option value="">No assets available</option>
+          ) : (
+            sortedAssets.map((assetData) => (
+              <option key={assetData.asset.id} value={assetData.asset.id}>
+                {formatAssetOptionLabel(assetData)}
+              </option>
+            ))
+          )}
+        </select>
+      </div>
+
+      {/* Sidebar - Asset Cards (Desktop only) */}
+      <aside className="hidden lg:block lg:w-80 xl:w-96 flex-shrink-0">
         <div className="sticky top-24">
           <div className="mb-4">
             <h2 className="text-sm font-semibold text-slate-700 uppercase tracking-wide mb-1">
@@ -164,7 +207,7 @@ export function DashboardContent({ assetsData, scoreWeights }: DashboardContentP
               Select an asset to view detailed analysis
             </p>
             
-            {/* Filter and Sort Controls */}
+            {/* Filter and Sort Controls - Desktop only */}
             <div className="space-y-4 mb-4">
               {/* Filter by Bias */}
               <div>
@@ -173,7 +216,7 @@ export function DashboardContent({ assetsData, scoreWeights }: DashboardContentP
                 </label>
                 <select
                   value={biasFilter}
-                  onChange={(e) => setBiasFilter(e.target.value as BiasFilter)}
+                  onChange={(e) => onBiasFilterChange(e.target.value as BiasFilter)}
                   className="w-full px-3 py-1.5 rounded-lg text-xs font-medium bg-white border-2 border-slate-200 text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
                   <option value="All">All</option>
@@ -193,7 +236,7 @@ export function DashboardContent({ assetsData, scoreWeights }: DashboardContentP
                 </label>
                 <select
                   value={sortOption}
-                  onChange={(e) => setSortOption(e.target.value as SortOption)}
+                  onChange={(e) => onSortOptionChange(e.target.value as SortOption)}
                   className="w-full px-3 py-1.5 rounded-lg text-xs font-medium bg-white border-2 border-slate-200 text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
                   <option value="bias">Bias (Bullish → Bearish)</option>
