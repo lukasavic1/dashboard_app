@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "MarketLens",
+  title: "PositionAlpha",
   description: "Market fundamentals analysis based on COT reports and seasonality",
   icons: {
     icon: "/favicon.ico",

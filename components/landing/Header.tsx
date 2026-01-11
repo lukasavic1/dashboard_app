@@ -45,7 +45,7 @@ export function Header() {
           {/* Logo */}
           <div className="flex lg:flex-1">
             <Link href="/" className="-m-1.5 p-1.5">
-              <span className="text-2xl font-semibold text-gray-900">MarketLens</span>
+              <span className="text-2xl font-semibold text-gray-900">PositionAlpha</span>
             </Link>
           </div>
 

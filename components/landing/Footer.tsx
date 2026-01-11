@@ -50,7 +50,7 @@ export function Footer() {
       <div className="mx-auto max-w-7xl px-6 py-12 lg:px-8 lg:py-16">
         <div className="xl:grid xl:grid-cols-3 xl:gap-8">
           <div className="space-y-8">
-            <div className="text-2xl font-semibold text-gray-900">MarketLens</div>
+            <div className="text-2xl font-semibold text-gray-900">PositionAlpha</div>
             <p className="text-sm leading-6 text-gray-600">
               Professional market analysis powered by COT reports and seasonal trends.
             </p>
@@ -104,7 +104,7 @@ export function Footer() {
         </div>
         <div className="mt-16 border-t border-gray-900/10 pt-8 sm:mt-20 lg:mt-24">
           <p className="text-xs leading-5 text-gray-500">
-            &copy; {new Date().getFullYear()} MarketLens. All rights reserved.
+            &copy; {new Date().getFullYear()} PositionAlpha. All rights reserved.
           </p>
         </div>
       </div>
