@@ -3,11 +3,13 @@
 import { SubscriptionProtectedRoute } from '@/components/auth/SubscriptionProtectedRoute';
 import { DashboardContent } from '@/components/DashboardContent';
 import { RefreshButton } from '@/components/RefreshButton';
+import { ScoreWeightSlider } from '@/components/ScoreWeightSlider';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useAuth } from '@/lib/auth/AuthContext';
 import { UserCircleIcon } from '@heroicons/react/24/outline';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { ScoringConfig } from '@/lib/processing/scoring/types';
 
 interface DashboardWrapperProps {
   assetsData: any[];
@@ -16,6 +18,10 @@ interface DashboardWrapperProps {
 export function DashboardWrapper({ assetsData }: DashboardWrapperProps) {
   const { user } = useAuth();
   const hasCheckedRef = useRef(false);
+  const [scoreWeights, setScoreWeights] = useState<{ cotWeight: number; seasonalityWeight: number }>({
+    cotWeight: 0.7,
+    seasonalityWeight: 0.3,
+  });
 
   // Check if data is stale on mount and trigger background refresh if needed
   useEffect(() => {
@@ -73,8 +79,11 @@ export function DashboardWrapper({ assetsData }: DashboardWrapperProps) {
                   <span className="min-[420px]:hidden">Fundamentals</span>
                 </h1>
               </div>
-              {/* Actions: Refresh and Profile */}
+              {/* Actions: Score Weights, Refresh and Profile */}
               <div className="flex items-center gap-1.5 sm:gap-2 lg:gap-3 flex-shrink-0">
+                <div className="hidden md:block">
+                  <ScoreWeightSlider onWeightsChange={setScoreWeights} />
+                </div>
                 <RefreshButton />
                 <Link
                   href="/profile"
@@ -89,9 +98,14 @@ export function DashboardWrapper({ assetsData }: DashboardWrapperProps) {
           </div>
         </header>
 
+        {/* Mobile Score Weights Slider */}
+        <div className="md:hidden mx-auto max-w-[1920px] px-4 sm:px-6 lg:px-8 py-2 border-b border-slate-200/60 bg-white/80 backdrop-blur-sm">
+          <ScoreWeightSlider onWeightsChange={setScoreWeights} />
+        </div>
+
         {/* Main */}
         <main className="mx-auto max-w-[1920px] px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-          <DashboardContent assetsData={assetsData} />
+          <DashboardContent assetsData={assetsData} scoreWeights={scoreWeights} />
         </main>
       </div>
     </SubscriptionProtectedRoute>

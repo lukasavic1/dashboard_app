@@ -5,6 +5,9 @@ import { AssetCard } from './AssetCard';
 import { AssetDetails } from './AssetDetails';
 import { ASSETS } from '@/lib/assets/assets';
 import { SeasonalityResult } from '@/lib/data/seasonality/types';
+import { computeFinalBias } from '@/lib/processing/scoring/combinedBias';
+import { scoreToBias } from '@/lib/data/seasonality/utils';
+import { ScoringConfig } from '@/lib/processing/scoring/types';
 
 interface CotData {
   reportDate: string;
@@ -25,6 +28,7 @@ interface AssetData {
 
 interface DashboardContentProps {
   assetsData: AssetData[];
+  scoreWeights: { cotWeight: number; seasonalityWeight: number };
 }
 
 type BiasFilter = 'All' | 'Strongly Bullish' | 'Bullish' | 'Neutral' | 'Bearish' | 'Strongly Bearish' | 'No Data';
@@ -40,17 +44,55 @@ const BIAS_ORDER: Record<string, number> = {
   'No Data': 5,
 };
 
-export function DashboardContent({ assetsData }: DashboardContentProps) {
+export function DashboardContent({ assetsData, scoreWeights }: DashboardContentProps) {
   const [selectedAssetId, setSelectedAssetId] = useState<string | null>(
     assetsData.length > 0 ? assetsData[0].assetId : null
   );
   const [biasFilter, setBiasFilter] = useState<BiasFilter>('All');
   const [sortOption, setSortOption] = useState<SortOption>('bias');
 
+  // Recalculate scores with custom weights
+  const recalculatedAssetsData = useMemo(() => {
+    const config: ScoringConfig = {
+      cotWeight: scoreWeights.cotWeight,
+      seasonalityWeight: scoreWeights.seasonalityWeight,
+      convictionBoostThreshold: 70,
+      convictionBoostAmount: 10,
+    };
+
+    return assetsData.map(assetData => {
+      // If we have both COT and seasonality data, recalculate
+      if (assetData.cotData?.derivedData?.analysis && assetData.seasonality) {
+        const analysis = assetData.cotData.derivedData.analysis;
+        const cotScore = analysis.score;
+        const cotBias = analysis.bias;
+        const seasonalityBias = scoreToBias(assetData.seasonality.score);
+
+        const combined = computeFinalBias(
+          cotScore,
+          assetData.seasonality.normalizedScore,
+          cotBias,
+          seasonalityBias,
+          config
+        );
+
+        return {
+          ...assetData,
+          finalScore: combined.finalScore,
+          finalBias: combined.finalBias,
+          breakdown: combined.breakdown,
+        };
+      }
+
+      // Otherwise return original data
+      return assetData;
+    });
+  }, [assetsData, scoreWeights]);
+
   // Get all assets with their data
   const assetsWithData = useMemo(() => {
     return ASSETS.map(asset => {
-      const data = assetsData.find(d => d.assetId === asset.id);
+      const data = recalculatedAssetsData.find(d => d.assetId === asset.id);
       return {
         asset,
         data,
@@ -58,7 +100,7 @@ export function DashboardContent({ assetsData }: DashboardContentProps) {
         score: data?.finalScore ?? -Infinity,
       };
     });
-  }, [assetsData]);
+  }, [recalculatedAssetsData]);
 
   // Filter assets based on selected bias filter
   const filteredAssets = useMemo(() => {
@@ -93,7 +135,7 @@ export function DashboardContent({ assetsData }: DashboardContentProps) {
     return sorted;
   }, [filteredAssets, sortOption]);
 
-  const selectedAsset = assetsData.find(a => a.assetId === selectedAssetId);
+  const selectedAsset = recalculatedAssetsData.find(a => a.assetId === selectedAssetId);
   const selectedAssetInfo = ASSETS.find(a => a.id === selectedAssetId);
 
   // Update selected asset if current selection is filtered out

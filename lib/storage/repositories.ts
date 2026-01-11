@@ -145,3 +145,16 @@ export async function hasAnyStaleData(): Promise<boolean> {
 
   return ageDays > COT_STALE_DAYS;
 }
+
+/**
+ * Gets the timestamp of the last refresh (when the most recent snapshot was created)
+ * Returns null if no snapshots exist
+ */
+export async function getLastRefreshTime(): Promise<Date | null> {
+  const latest = await prisma.cotSnapshot.findFirst({
+    orderBy: { createdAt: "desc" },
+    select: { createdAt: true },
+  });
+
+  return latest?.createdAt ?? null;
+}

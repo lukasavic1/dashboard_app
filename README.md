@@ -123,3 +123,51 @@ CREATE INDEX "RefreshAttempt_userId_createdAt_idx" ON "RefreshAttempt"("userId",
 
 ALTER TABLE "RefreshAttempt" ADD CONSTRAINT "RefreshAttempt_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 ```
+
+### Verifying Cron Jobs in Vercel
+
+To verify that your cron jobs are set up correctly in Vercel:
+
+1. **Check Cron Configuration**:
+   - Go to your Vercel project dashboard
+   - Navigate to **Settings** → **Cron Jobs**
+   - You should see two cron jobs listed:
+     - `35 20 * * 2,4,5` → `/api/cron/refresh-cot` (main schedule)
+     - `40,45,50,55 20 * * 2,4,5` → `/api/cron/refresh-cot` (retry schedule)
+
+2. **View Cron Execution Logs**:
+   - Go to **Deployments** tab in your Vercel dashboard
+   - Click on any deployment
+   - Go to **Functions** tab
+   - Find `/api/cron/refresh-cot` function
+   - Click on it to see execution logs and history
+   - You can also check the **Logs** tab for real-time execution logs
+
+3. **Test Cron Job Manually**:
+   - You can manually trigger the cron endpoint to test it:
+     ```bash
+     curl -X GET https://your-domain.com/api/cron/refresh-cot \
+       -H "Authorization: Bearer YOUR_CRON_SECRET"
+     ```
+   - Or use the Vercel dashboard: Go to **Settings** → **Cron Jobs** → Click "Run Now" next to a cron job
+
+4. **Monitor Cron Execution**:
+   - Check your application logs in Vercel for `[Cron]` prefixed messages
+   - Look for successful executions or error messages
+   - Cron jobs will show up in your function invocations with the `x-vercel-cron: 1` header
+
+5. **Verify Schedule**:
+   - Cron jobs run in UTC time
+   - `35 20 * * 2,4,5` means: 8:35 PM UTC on Tuesday (2), Thursday (4), and Friday (5)
+   - This translates to 3:35 PM EST (or 4:35 PM EDT during daylight saving time)
+   - The retry schedule runs at 8:40, 8:45, 8:50, and 8:55 PM UTC on the same days
+
+6. **Troubleshooting**:
+   - If cron jobs aren't running, check:
+     - Is the `vercel.json` file committed and deployed?
+     - Are you on a Vercel plan that supports cron jobs? (Pro plan or higher)
+     - Check the cron job configuration in Vercel dashboard for any errors
+     - Verify the endpoint path matches exactly: `/api/cron/refresh-cot`
+     - Check function logs for authentication errors (if using `CRON_SECRET`)
+
+**Note**: Cron jobs only run on production deployments. They won't run on preview deployments or local development.
