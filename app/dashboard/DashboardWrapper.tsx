@@ -84,13 +84,13 @@ export function DashboardWrapper({ assetsData }: DashboardWrapperProps) {
           <div className="mx-auto max-w-[1920px] px-4 sm:px-6 lg:px-8 py-3 sm:py-5 lg:py-6">
             <div className="flex items-center justify-between gap-2 sm:gap-3">
               {/* Logo and Title */}
-              <div className="flex items-center gap-2 sm:gap-2.5 lg:gap-4 min-w-0 flex-1">
+              <div className="flex flex-col items-start gap-1 sm:gap-1.5 lg:gap-2 min-w-0 flex-1">
                 <Image
-                  src="/logo.png"
+                  src="/Logos/logo_darker2_slim2.png"
                   alt="Logo"
-                  width={250}
-                  height={250}
-                  className="h-10 w-10 sm:h-14 sm:w-14 lg:h-16 lg:w-16 object-contain flex-shrink-0"
+                  width={1028}
+                  height={512}
+                  className="h-8 w-auto sm:h-10 sm:w-auto lg:h-12 lg:w-auto object-contain flex-shrink-0"
                   priority
                 />
                 <h1 className="text-base sm:text-2xl lg:text-3xl xl:text-4xl font-bold bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 bg-clip-text text-transparent tracking-tight leading-tight truncate min-w-0">
