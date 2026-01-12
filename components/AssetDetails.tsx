@@ -260,7 +260,7 @@ export function AssetDetails({
   return (
     <div className="space-y-6">
       {/* Hero Section - Asset Overview */}
-      <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-white via-slate-50/30 to-white p-6 sm:p-8 shadow-lg">
+      <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-white via-slate-50/30 to-white p-6 sm:p-8 shadow-lg" data-tour="analysis-display">
         <div className="mb-6">
           <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-2">
             {assetName}
@@ -292,7 +292,7 @@ export function AssetDetails({
 
         {/* Score Breakdown - Compact */}
         {hasCombinedAnalysis && breakdown && (
-          <div className="mt-6 pt-6 border-t border-slate-200">
+          <div className="mt-6 pt-6 border-t border-slate-200" data-tour="analysis-info">
             <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Score Breakdown</p>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               <div className="bg-slate-50 rounded-lg p-3 border border-slate-100">

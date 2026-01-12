@@ -251,7 +251,7 @@ export function DashboardContent({
               </div>
             </div>
           </div>
-          <div className="space-y-2 max-h-[calc(100vh-20rem)] overflow-y-auto pr-2 custom-scrollbar">
+          <div className="space-y-2 max-h-[calc(100vh-20rem)] overflow-y-auto pr-2 custom-scrollbar" data-tour="asset-selection">
             {sortedAssets.map(({ asset, data }) => (
               <AssetCard
                 key={asset.id}

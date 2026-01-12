@@ -8,6 +8,15 @@ import {
 } from '@/lib/storage/subscription';
 import Stripe from 'stripe';
 
+// Helper function to safely extract subscription end date
+function getSubscriptionEndDate(subscription: Stripe.Subscription): Date | null {
+  const currentPeriodEnd = (subscription as any).current_period_end;
+  if (currentPeriodEnd && typeof currentPeriodEnd === 'number') {
+    return new Date(currentPeriodEnd * 1000);
+  }
+  return null;
+}
+
 export async function POST(request: NextRequest) {
   const body = await request.text();
   const signature = request.headers.get('stripe-signature');
@@ -54,7 +63,7 @@ export async function POST(request: NextRequest) {
             await updateSubscription(firebaseUid, {
               stripeSubscriptionId: subscriptionId,
               subscriptionStatus: subscription.status,
-              subscriptionEndsAt: new Date((subscription as any).current_period_end * 1000),
+              subscriptionEndsAt: getSubscriptionEndDate(subscription),
             });
           } else if (customerId) {
             // Try to find user by customer ID
@@ -63,7 +72,7 @@ export async function POST(request: NextRequest) {
               await updateSubscription(user.id, {
                 stripeSubscriptionId: subscriptionId,
                 subscriptionStatus: subscription.status,
-                subscriptionEndsAt: new Date((subscription as any).current_period_end * 1000),
+                subscriptionEndsAt: getSubscriptionEndDate(subscription),
               });
             }
           }
@@ -81,7 +90,7 @@ export async function POST(request: NextRequest) {
           await updateSubscription(firebaseUid, {
             stripeSubscriptionId: subscription.id,
             subscriptionStatus: subscription.status,
-            subscriptionEndsAt: new Date((subscription as any).current_period_end * 1000),
+            subscriptionEndsAt: getSubscriptionEndDate(subscription),
           });
         } else {
           // Try to find user by customer ID
@@ -90,7 +99,7 @@ export async function POST(request: NextRequest) {
             await updateSubscription(user.id, {
               stripeSubscriptionId: subscription.id,
               subscriptionStatus: subscription.status,
-              subscriptionEndsAt: new Date((subscription as any).current_period_end * 1000),
+              subscriptionEndsAt: getSubscriptionEndDate(subscription),
             });
           }
         }
@@ -104,14 +113,14 @@ export async function POST(request: NextRequest) {
         if (firebaseUid) {
           await updateSubscription(firebaseUid, {
             subscriptionStatus: 'canceled',
-            subscriptionEndsAt: new Date((subscription as any).current_period_end * 1000),
+            subscriptionEndsAt: getSubscriptionEndDate(subscription),
           });
         } else {
           const user = await getUserByStripeSubscriptionId(subscription.id);
           if (user) {
             await updateSubscription(user.id, {
               subscriptionStatus: 'canceled',
-              subscriptionEndsAt: new Date((subscription as any).current_period_end * 1000),
+              subscriptionEndsAt: getSubscriptionEndDate(subscription),
             });
           }
         }
@@ -129,14 +138,14 @@ export async function POST(request: NextRequest) {
           if (firebaseUid) {
             await updateSubscription(firebaseUid, {
               subscriptionStatus: subscription.status,
-              subscriptionEndsAt: new Date((subscription as any).current_period_end * 1000),
+              subscriptionEndsAt: getSubscriptionEndDate(subscription),
             });
           } else {
             const user = await getUserByStripeSubscriptionId(subscriptionId);
             if (user) {
               await updateSubscription(user.id, {
                 subscriptionStatus: subscription.status,
-                subscriptionEndsAt: new Date((subscription as any).current_period_end * 1000),
+                subscriptionEndsAt: getSubscriptionEndDate(subscription),
               });
             }
           }

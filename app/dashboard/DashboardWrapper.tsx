@@ -5,6 +5,7 @@ import { DashboardContent } from '@/components/DashboardContent';
 import { RefreshButton } from '@/components/RefreshButton';
 import { ScoreWeightSlider } from '@/components/ScoreWeightSlider';
 import { MobileSettingsModal } from '@/components/MobileSettingsModal';
+import { TourGuide, TourStartButton } from '@/components/TourGuide';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useAuth } from '@/lib/auth/AuthContext';
@@ -78,15 +79,16 @@ export function DashboardWrapper({ assetsData }: DashboardWrapperProps) {
 
   return (
     <SubscriptionProtectedRoute>
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50">
+      <TourGuide>
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50">
         {/* Header */}
-        <header className="border-b border-slate-200/60 bg-white/80 backdrop-blur-sm sticky top-0 z-10 shadow-sm">
+        <header className="border-b border-slate-200/60 bg-white/80 backdrop-blur-sm sticky top-0 z-[5] shadow-sm">
           <div className="mx-auto max-w-[1920px] px-4 sm:px-6 lg:px-8 py-3 sm:py-5 lg:py-6">
             <div className="flex items-center justify-between gap-2 sm:gap-3">
               {/* Logo and Title */}
-              <div className="flex flex-col items-start gap-1 sm:gap-1.5 lg:gap-2 min-w-0 flex-1">
+              <div className="flex items-center gap-2 sm:gap-2.5 lg:gap-4 min-w-0 flex-1">
                 <Image
-                  src="/Logos/logo_darker2_slim2.png"
+                  src="/Logos/logonew2.png"
                   alt="Logo"
                   width={1028}
                   height={512}
@@ -98,12 +100,14 @@ export function DashboardWrapper({ assetsData }: DashboardWrapperProps) {
                   <span className="min-[420px]:hidden">Fundamentals</span>
                 </h1>
               </div>
-              {/* Actions: Score Weights, Refresh, Settings (mobile), and Profile */}
+              {/* Actions: Score Weights, Refresh, Settings (mobile), Tour, and Profile */}
               <div className="flex items-center gap-1.5 sm:gap-2 lg:gap-3 flex-shrink-0">
-                <div className="hidden md:block">
+                <div className="hidden md:block" data-tour="score-settings">
                   <ScoreWeightSlider onWeightsChange={setScoreWeights} />
                 </div>
                 <RefreshButton />
+                {/* Tour Start Button (for testing) */}
+                {/* <TourStartButton /> */}
                 {/* Mobile Settings Button */}
                 <button
                   onClick={() => setShowMobileSettings(true)}
@@ -150,7 +154,8 @@ export function DashboardWrapper({ assetsData }: DashboardWrapperProps) {
           filteredCount={filteredCount}
           totalCount={assetsData.length}
         />
-      </div>
+        </div>
+      </TourGuide>
     </SubscriptionProtectedRoute>
   );
 }
