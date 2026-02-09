@@ -44,7 +44,7 @@ export async function hasActiveSubscription(firebaseUid: string): Promise<Subscr
 
   const now = new Date();
   const isActive =
-    user.subscriptionStatus === 'active' &&
+    (user.subscriptionStatus === 'active' || user.subscriptionStatus === 'trialing') &&
     (!user.subscriptionEndsAt || user.subscriptionEndsAt > now);
 
   return {

@@ -4,11 +4,12 @@ import { useState, useEffect, Suspense } from 'react';
 import { useAuth } from '@/lib/auth/AuthContext';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/outline';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 
 function SubscriptionContent() {
   const { user } = useAuth();
   const searchParams = useSearchParams();
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [checkingStatus, setCheckingStatus] = useState(true);
@@ -20,14 +21,89 @@ function SubscriptionContent() {
     const sessionId = searchParams.get('session_id');
     if (sessionId) {
       setSuccess(true);
-      // Wait a moment for webhook to process, then check status
-      setTimeout(() => {
-        checkSubscriptionStatus();
-      }, 2000);
+      // Verify session directly from Stripe (bypasses webhook delay)
+      const verifySession = async () => {
+        if (!user) return;
+        
+        try {
+          const token = await user.getIdToken();
+          
+          // First, verify the session with Stripe directly
+          const verifyResponse = await fetch('/api/subscription/verify-session', {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ sessionId }),
+          });
+
+          if (verifyResponse.ok) {
+            const verifyData = await verifyResponse.json();
+            setHasSubscription(verifyData.hasActiveSubscription);
+            setCheckingStatus(false);
+            
+            // If still not active, start polling
+            if (!verifyData.hasActiveSubscription) {
+              setTimeout(() => {
+                checkSubscriptionStatusWithPolling();
+              }, 2000);
+            }
+          } else {
+            // If verification fails, fall back to checking status
+            console.warn('Session verification failed, checking status instead');
+            const statusResponse = await fetch('/api/subscription/status', {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            });
+
+            if (statusResponse.ok) {
+              const statusData = await statusResponse.json();
+              setHasSubscription(statusData.hasActiveSubscription);
+              setCheckingStatus(false);
+              
+              if (!statusData.hasActiveSubscription) {
+                setTimeout(() => {
+                  checkSubscriptionStatusWithPolling();
+                }, 2000);
+              }
+            } else {
+              setCheckingStatus(false);
+              setTimeout(() => {
+                checkSubscriptionStatusWithPolling();
+              }, 2000);
+            }
+          }
+        } catch (err) {
+          console.error('Error verifying session:', err);
+          setCheckingStatus(false);
+          // Start polling as fallback
+          setTimeout(() => {
+            checkSubscriptionStatusWithPolling();
+          }, 2000);
+        }
+      };
+      verifySession();
     } else {
       checkSubscriptionStatus();
     }
   }, [user, searchParams]);
+
+  // Redirect to dashboard when subscription becomes active after successful payment
+  useEffect(() => {
+    if (success && hasSubscription && !checkingStatus) {
+      // Small delay to ensure state is settled
+      const timer = setTimeout(() => {
+        router.push('/dashboard');
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [success, hasSubscription, checkingStatus, router]);
+
+  const handleGoToDashboard = () => {
+    router.push('/dashboard');
+  };
 
   const checkSubscriptionStatus = async () => {
     if (!user) {
@@ -46,11 +122,6 @@ function SubscriptionContent() {
       if (response.ok) {
         const data = await response.json();
         setHasSubscription(data.hasActiveSubscription);
-        
-        // If they have an active subscription, redirect to dashboard
-        if (data.hasActiveSubscription) {
-          window.location.href = '/dashboard';
-        }
       } else {
         // On error, assume no subscription (show subscription page)
         console.error('Failed to check subscription status:', response.status);
@@ -63,6 +134,59 @@ function SubscriptionContent() {
     } finally {
       setCheckingStatus(false);
     }
+  };
+
+  const checkSubscriptionStatusWithPolling = async () => {
+    if (!user) {
+      setCheckingStatus(false);
+      return;
+    }
+
+    const maxAttempts = 10; // Try for up to 30 seconds (10 attempts * 3 seconds)
+    let attempts = 0;
+
+    const poll = async () => {
+      try {
+        const token = await user.getIdToken();
+        const response = await fetch('/api/subscription/status', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setHasSubscription(data.hasActiveSubscription);
+          
+          if (data.hasActiveSubscription) {
+            setCheckingStatus(false);
+            // Redirect will happen via useEffect
+            return;
+          }
+        }
+
+        attempts++;
+        if (attempts < maxAttempts) {
+          // Poll every 3 seconds
+          setTimeout(poll, 3000);
+        } else {
+          // Max attempts reached, stop checking
+          setCheckingStatus(false);
+          console.warn('Subscription activation taking longer than expected. Please refresh the page.');
+        }
+      } catch (err) {
+        console.error('Error checking subscription status:', err);
+        attempts++;
+        if (attempts < maxAttempts) {
+          setTimeout(poll, 3000);
+        } else {
+          setCheckingStatus(false);
+        }
+      }
+    };
+
+    // Start polling
+    poll();
   };
 
   const handleSubscribe = async () => {
@@ -100,7 +224,7 @@ function SubscriptionContent() {
     }
   };
 
-  if (checkingStatus) {
+  if (checkingStatus && !success) {
     return (
       <ProtectedRoute>
         <div className="flex min-h-screen items-center justify-center bg-gray-50">
@@ -126,7 +250,11 @@ function SubscriptionContent() {
                     Payment Successful!
                   </h2>
                   <p className="mt-2 text-sm text-gray-600">
-                    Your subscription is being activated. Redirecting to dashboard...
+                    {checkingStatus 
+                      ? 'Your subscription is being activated. Redirecting to dashboard...'
+                      : hasSubscription
+                      ? 'Your subscription is active!'
+                      : 'Your subscription is being activated. This may take a few moments.'}
                   </p>
                 </>
               ) : (
@@ -143,6 +271,14 @@ function SubscriptionContent() {
             </div>
 
             <div className="mt-8 space-y-4">
+              {success && (
+                <button
+                  onClick={handleGoToDashboard}
+                  className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                >
+                  Go to Dashboard
+                </button>
+              )}
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                 <h3 className="text-lg font-semibold text-gray-900 mb-3">
                   Premium Features
@@ -173,20 +309,22 @@ function SubscriptionContent() {
                 </div>
               )}
 
-              <button
-                onClick={handleSubscribe}
-                disabled={loading}
-                className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {loading ? (
-                  <>
-                    <div className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-solid border-white border-r-transparent mr-2"></div>
-                    Processing...
-                  </>
-                ) : (
-                  'Subscribe Now'
-                )}
-              </button>
+              {!success && (
+                <button
+                  onClick={handleSubscribe}
+                  disabled={loading}
+                  className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {loading ? (
+                    <>
+                      <div className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-solid border-white border-r-transparent mr-2"></div>
+                      Processing...
+                    </>
+                  ) : (
+                    'Subscribe Now'
+                  )}
+                </button>
+              )}
 
               <p className="text-xs text-center text-gray-500">
                 Secure payment powered by Stripe. Cancel anytime.
