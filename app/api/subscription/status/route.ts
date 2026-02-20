@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyFirebaseToken } from '@/lib/auth/verify';
-import { hasActiveSubscription, getUserByStripeCustomerId } from '@/lib/storage/subscription';
-import { stripe } from '@/lib/stripe/config';
+import { hasActiveSubscription } from '@/lib/storage/subscription';
 import { prisma } from '@/lib/storage/prisma';
 
 export async function GET(request: NextRequest) {
@@ -38,7 +37,8 @@ export async function GET(request: NextRequest) {
 
       if (user?.stripeCustomerId) {
         try {
-          // Get customer's subscriptions from Stripe
+          // Lazy-load Stripe so route works when STRIPE_SECRET_KEY is unset (avoids 500)
+          const { stripe } = await import('@/lib/stripe/config');
           const subscriptions = await stripe.subscriptions.list({
             customer: user.stripeCustomerId,
             status: 'all',

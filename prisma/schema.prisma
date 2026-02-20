@@ -63,6 +63,16 @@ model RefreshAttempt {
   @@index([userId, createdAt])
 }
 
+// Persists cron retry state across serverless cold starts.
+// A single row (key = "cot") is upserted on each cron failure/success.
+model CronState {
+  key            String    @id
+  lastFailureAt  DateTime?
+  failureReason  String?
+  retryCount     Int       @default(0)
+  updatedAt      DateTime  @updatedAt
+}
+
 generator client {
   provider      = "prisma-client-js"
   binaryTargets = ["native", "rhel-openssl-3.0.x"]

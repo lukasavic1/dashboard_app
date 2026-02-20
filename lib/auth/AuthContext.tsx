@@ -12,6 +12,7 @@ import {
 } from 'firebase/auth';
 import { auth } from '@/lib/firebase/config';
 import { useRouter } from 'next/navigation';
+import { fetchSubscriptionStatusWithRetry } from '@/lib/subscription/client';
 
 interface AuthContextType {
   user: User | null;
@@ -40,27 +41,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const checkSubscriptionAndRedirect = async (user: User) => {
     try {
-      const token = await user.getIdToken();
-      const response = await fetch('/api/subscription/status', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const { ok, data } = await fetchSubscriptionStatusWithRetry(user);
 
-      if (response.ok) {
-        const data = await response.json();
+      if (ok && data) {
         if (data.hasActiveSubscription) {
           router.push('/dashboard');
         } else {
           router.push('/subscription');
         }
       } else {
-        // On error, redirect to subscription page to be safe
+        // On error (e.g. 401 when FIREBASE_SERVICE_ACCOUNT_KEY is missing), redirect to subscription page
         router.push('/subscription');
       }
     } catch (error) {
       console.error('Error checking subscription:', error);
-      // On error, redirect to subscription page to be safe
       router.push('/subscription');
     }
   };

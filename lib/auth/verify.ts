@@ -4,7 +4,7 @@ import { initializeApp, getApps, cert } from 'firebase-admin/app';
 // Initialize Firebase Admin if not already initialized
 if (getApps().length === 0) {
   const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
-  
+
   if (serviceAccount) {
     try {
       const serviceAccountJson = JSON.parse(serviceAccount);
@@ -17,7 +17,10 @@ if (getApps().length === 0) {
   } else {
     // In development, you might not have service account
     // This will fail at runtime if trying to verify tokens
-    console.warn('FIREBASE_SERVICE_ACCOUNT_KEY not set - token verification will fail');
+    console.warn(
+      'FIREBASE_SERVICE_ACCOUNT_KEY not set - token verification will fail with 401. ' +
+        'Add it from Firebase Console → Project settings → Service accounts.'
+    );
   }
 }
 
@@ -29,6 +32,11 @@ export async function verifyFirebaseToken(
   authHeader: string | null
 ): Promise<{ uid: string; email: string | null } | null> {
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return null;
+  }
+
+  // Avoid calling getAuth() when Firebase Admin was never initialized (returns 401 otherwise)
+  if (getApps().length === 0) {
     return null;
   }
 

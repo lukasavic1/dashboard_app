@@ -3,6 +3,8 @@ import { verifyFirebaseToken } from "@/lib/auth/verify";
 import { getRemainingRefreshes } from "@/lib/storage/refreshLimits";
 import { getOrCreateUser } from "@/lib/storage/subscription";
 
+const MAX_REFRESHES_PER_DAY = 3;
+
 /**
  * Get remaining manual refresh attempts for the current user
  */
@@ -18,16 +20,28 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Ensure user exists in database
-    await getOrCreateUser(userInfo.uid, userInfo.email || "");
+    // Ensure user exists in database (best-effort; don't fail if upsert has a conflict)
+    try {
+      await getOrCreateUser(userInfo.uid, userInfo.email || "");
+    } catch (userErr) {
+      console.warn("getOrCreateUser failed (user may already exist):", userErr);
+      // Continue to try getRemainingRefreshes
+    }
 
-    const remaining = await getRemainingRefreshes(userInfo.uid);
+    let remaining: number;
+    try {
+      remaining = await getRemainingRefreshes(userInfo.uid);
+    } catch (dbErr) {
+      console.error("Error fetching remaining refreshes:", dbErr);
+      // Return safe default so UI doesn't break (e.g. DB/Prisma issue)
+      return NextResponse.json({ remaining: MAX_REFRESHES_PER_DAY });
+    }
 
     return NextResponse.json({
       remaining,
     });
   } catch (error) {
-    console.error("Error fetching remaining refreshes:", error);
+    console.error("Error in refresh/remaining:", error);
     return NextResponse.json(
       {
         error: error instanceof Error ? error.message : "Unknown error",

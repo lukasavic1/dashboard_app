@@ -4,6 +4,7 @@ import { useAuth } from '@/lib/auth/AuthContext';
 import { useRouter, usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { ProtectedRoute } from './ProtectedRoute';
+import { fetchSubscriptionStatusWithRetry } from '@/lib/subscription/client';
 
 export function SubscriptionProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading: authLoading } = useAuth();
@@ -31,33 +32,16 @@ export function SubscriptionProtectedRoute({ children }: { children: React.React
     }
 
     try {
-      const token = await user.getIdToken();
-      const response = await fetch('/api/subscription/status', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const { ok, data } = await fetchSubscriptionStatusWithRetry(user);
 
-      if (response.ok) {
-        const data = await response.json();
+      if (ok && data) {
         setHasSubscription(data.hasActiveSubscription);
 
-        // If they don't have an active subscription, redirect to subscription page
         if (!data.hasActiveSubscription && !isSubscriptionPage) {
           router.push('/subscription');
         }
       } else {
-        // On error, try to parse response for error details
-        let errorData;
-        try {
-          errorData = await response.json();
-        } catch {
-          errorData = { error: 'Unknown error' };
-        }
-        console.error('Failed to check subscription status:', response.status, errorData);
-        
-        // On error, assume no subscription and redirect to subscription page
-        // This prevents infinite loading states
+        // On error (e.g. 401 when FIREBASE_SERVICE_ACCOUNT_KEY is missing), assume no subscription
         setHasSubscription(false);
         if (!isSubscriptionPage) {
           router.push('/subscription');
@@ -65,8 +49,6 @@ export function SubscriptionProtectedRoute({ children }: { children: React.React
       }
     } catch (error) {
       console.error('Error checking subscription status:', error);
-      // On error, assume no subscription and redirect to subscription page
-      // This prevents infinite loading states
       setHasSubscription(false);
       if (!isSubscriptionPage) {
         router.push('/subscription');

@@ -1,17 +1,18 @@
-import { fetchCotFile } from "./fetch";
-import { parseCotForMarket } from "./parse";
+import { fetchCotForMarket } from "./fetch";
 import { ASSETS } from "@/lib/assets/assets";
 import { getLatestReportDateInDb, isReportDateNewer } from "@/lib/storage/repositories";
 
 /**
  * Checks if there's a newer COT report available than what's in the database.
- * This function fetches the COT file and compares the latest report date
- * with what we have stored.
- * 
+ *
+ * Fetches just the single most recent record for the first tracked asset from
+ * the CFTC Public Reporting API — fast and sufficient because CFTC publishes
+ * all markets on the same date every week.
+ *
  * Returns:
- * - { needsUpdate: true, latestReportDate: Date } if a newer report is available
- * - { needsUpdate: false, latestReportDate: Date | null } if we're up to date
- * - { needsUpdate: false, latestReportDate: null, error: string } if check failed
+ * - { needsUpdate: true,  latestReportDate: Date }            – newer report available
+ * - { needsUpdate: false, latestReportDate: Date | null }     – already up to date
+ * - { needsUpdate: false, latestReportDate: null, error: string } – check failed
  */
 export async function checkForNewerReport(): Promise<{
   needsUpdate: boolean;
@@ -19,76 +20,37 @@ export async function checkForNewerReport(): Promise<{
   error?: string;
 }> {
   try {
-    // Get latest report date from database
+    // Pick any asset with a cotCode as the probe
+    const probeAsset = ASSETS.find((a) => a.cotCode);
+    if (!probeAsset?.cotCode) {
+      return {
+        needsUpdate: false,
+        latestReportDate: null,
+        error: "No assets with cotCode configured",
+      };
+    }
+
+    // Fetch only 1 record (the most recent) to check the latest available date
+    const recent = await fetchCotForMarket(probeAsset.cotCode, 1);
+    if (recent.length === 0) {
+      return {
+        needsUpdate: false,
+        latestReportDate: null,
+        error: `CFTC API returned no records for ${probeAsset.cotCode}`,
+      };
+    }
+
+    // After fetchCotForMarket reverses DESC→ASC, limit=1 gives us the single
+    // newest record as the only element
+    const latestReportDate = recent[0].reportDate;
+
     const latestInDb = await getLatestReportDateInDb();
-
-    // Fetch COT file to check what's available
-    const currentYear = new Date().getFullYear();
-    const yearsToTry = [2025, 2024, currentYear].filter((y, i, arr) => arr.indexOf(y) === i);
-
-    let rawFile: string | undefined;
-    let yearUsed: number | undefined;
-    let lastError: Error | null = null;
-
-    for (const year of yearsToTry) {
-      try {
-        rawFile = await fetchCotFile(year);
-        yearUsed = year;
-        break;
-      } catch (error) {
-        lastError = error instanceof Error ? error : new Error(String(error));
-        continue;
-      }
-    }
-
-    if (!rawFile || !yearUsed) {
-      return {
-        needsUpdate: false,
-        latestReportDate: null,
-        error: `Failed to fetch COT file: ${lastError?.message || "Unknown error"}`,
-      };
-    }
-
-    // Find the latest report date across all assets
-    let latestReportDate: Date | null = null;
-
-    for (const asset of ASSETS) {
-      if (!asset.cotCode) continue;
-
-      const history = parseCotForMarket(rawFile, asset.cotCode);
-      if (history.length === 0) continue;
-
-      const latestReport = history[history.length - 1];
-      
-      if (!latestReportDate || latestReport.reportDate > latestReportDate) {
-        latestReportDate = latestReport.reportDate;
-      }
-    }
-
-    if (!latestReportDate) {
-      return {
-        needsUpdate: false,
-        latestReportDate: null,
-        error: "No report dates found in fetched COT data",
-      };
-    }
-
-    // Compare with database
     if (!latestInDb) {
-      // No data in DB, we need to update
-      return {
-        needsUpdate: true,
-        latestReportDate,
-      };
+      return { needsUpdate: true, latestReportDate };
     }
 
-    // Check if the fetched report is newer
     const needsUpdate = await isReportDateNewer(latestReportDate);
-
-    return {
-      needsUpdate,
-      latestReportDate,
-    };
+    return { needsUpdate, latestReportDate };
   } catch (error) {
     return {
       needsUpdate: false,

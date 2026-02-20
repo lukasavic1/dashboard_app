@@ -1,343 +1,285 @@
 import { ASSETS } from "@/lib/assets/assets";
-import { fetchCotFile } from "@/lib/data/cot/fetch";
-import { 
-  parseCotForMarket, 
-  getLatestFridayDate 
-} from "@/lib/data/cot/parse";
+import { fetchCotForMarket } from "@/lib/data/cot/fetch";
+import { getLatestFridayDate } from "@/lib/data/cot/parse";
 import { computeCotAnalysis } from "@/lib/processing/cot/analysis";
 import { generateCotNotes } from "@/lib/processing/cot/llm";
-import { isCotStale, saveCotSnapshot, isReportDateNewer, getLatestReportDateInDb } from "@/lib/storage/repositories";
-import { computeSeasonality } from "@/lib/data/seasonality/compute";
 import {
+  isCotStale,
+  saveCotSnapshot,
+  isReportDateNewer,
+  getLatestReportDateInDb,
   isSeasonalityStale,
   saveSeasonalitySnapshot,
 } from "@/lib/storage/repositories";
+import { computeSeasonality } from "@/lib/data/seasonality/compute";
 import { prisma } from "@/lib/storage/prisma";
 import { NextRequest } from "next/server";
 import { verifyFirebaseToken } from "@/lib/auth/verify";
-import { canUserRefresh, recordRefreshAttempt, getRemainingRefreshes } from "@/lib/storage/refreshLimits";
+import {
+  canUserRefresh,
+  recordRefreshAttempt,
+  getRemainingRefreshes,
+} from "@/lib/storage/refreshLimits";
 import { getOrCreateUser } from "@/lib/storage/subscription";
 
 /**
- * Validates that the latest report is recent enough to be considered fresh.
- * 
- * COT reports are typically published on Fridays at 3:30 PM US Eastern Time, but:
- * - Due to timezone differences, the report date might appear as a different day
- * - During holidays, reports can be shifted to Thursday (or occasionally other days)
- * - The report date in the data is the "as of" date, not the publication date
- * 
- * Instead of requiring an exact Friday match, we check if the report is within
- * a reasonable window (default 10 days) to handle all these edge cases.
+ * Returns true if the report date is within maxAgeDays of today.
+ * Handles holiday shifts (Thu releases) and timezone edge cases.
  */
-function isReportDateRecent(reportDate: Date, maxAgeDays: number = 10): boolean {
-  const now = new Date();
-  const diffMs = now.getTime() - reportDate.getTime();
-  const diffDays = diffMs / (1000 * 60 * 60 * 24);
+function isReportDateRecent(reportDate: Date, maxAgeDays = 10): boolean {
+  const diffDays =
+    (Date.now() - reportDate.getTime()) / (1000 * 60 * 60 * 24);
   return diffDays <= maxAgeDays && diffDays >= 0;
 }
 
-/**
- * Gets the day name for logging purposes
- */
 function getDayName(date: Date): string {
-  return date.toLocaleDateString('en-US', { weekday: 'long' });
+  return date.toLocaleDateString("en-US", { weekday: "long" });
 }
 
 export async function POST(request: NextRequest) {
-  // Check if this is a manual refresh (requires authentication and rate limiting)
-  // Cron jobs can bypass this by calling directly
-  const authHeader = request.headers.get("authorization");
-  const isCronJob = request.headers.get("x-vercel-cron") === "1" || 
-                    request.headers.get("x-cron-internal") === "1";
-  
-  let userId: string | null = null;
-  
-  if (!isCronJob) {
-    // Manual refresh - require authentication and check rate limit
-    const userInfo = await verifyFirebaseToken(authHeader);
-    
-    if (!userInfo) {
-      return Response.json(
-        { 
-          status: "error", 
-          message: "Unauthorized. Please log in to refresh data.",
-        },
-        { status: 401 }
-      );
-    }
-    
-    userId = userInfo.uid;
-    
-    // Ensure user exists in database
-    await getOrCreateUser(userId, userInfo.email || "");
-    
-    // Check rate limit
-    const canRefresh = await canUserRefresh(userId);
-    if (!canRefresh) {
-      const remaining = await getRemainingRefreshes(userId);
-      return Response.json(
-        {
-          status: "error",
-          message: `Rate limit exceeded. You can refresh up to 3 times per day. Remaining today: ${remaining}`,
-          rateLimited: true,
-          remainingRefreshes: remaining,
-        },
-        { status: 429 }
-      );
-    }
-  }
-  const currentYear = new Date().getFullYear();
-  const latestFriday = getLatestFridayDate();
-  
-  console.log(`Fetching COT data, expecting latest report around ${latestFriday.toISOString().split('T')[0]}`);
+  try {
+    // ── Auth & rate-limiting ──────────────────────────────────────────────────
+    const authHeader = request.headers.get("authorization");
+    const isCronJob =
+      request.headers.get("x-vercel-cron") === "1" ||
+      request.headers.get("x-cron-internal") === "1";
 
-  let rawFile: string | undefined;
-  let yearUsed: number | undefined;
-  
-  // Try 2025 first (most recent year with data), then 2024, then current year
-  const yearsToTry = [2025, 2024, currentYear].filter((y, i, arr) => arr.indexOf(y) === i);
-  
-  let lastError: Error | null = null;
-  
-  for (const year of yearsToTry) {
-    try {
-      rawFile = await fetchCotFile(year);
-      yearUsed = year;
-      console.log(`Successfully fetched COT data for ${year}`);
-      break;
-    } catch (error) {
-      console.warn(`Failed to fetch COT data for ${year}:`, error instanceof Error ? error.message : String(error));
-      lastError = error instanceof Error ? error : new Error(String(error));
-      continue;
-    }
-  }
-  
-  if (!rawFile || !yearUsed) {
-    console.error("Failed to fetch COT file for all attempted years:", yearsToTry);
-    const errorMessage = lastError?.message || "Unknown error";
-    return Response.json({ 
-      status: "error", 
-      message: "Failed to fetch COT data",
-      error: errorMessage,
-      attemptedYears: yearsToTry,
-      urls: yearsToTry.map(y => `https://www.cftc.gov/files/dea/history/fut_disagg_txt_${y}.zip`)
-    }, { status: 500 });
-  }
+    let userId: string | null = null;
 
-  const results = [];
+    if (!isCronJob) {
+      const userInfo = await verifyFirebaseToken(authHeader);
+      if (!userInfo) {
+        return Response.json(
+          { status: "error", message: "Unauthorized. Please log in to refresh data." },
+          { status: 401 }
+        );
+      }
+      userId = userInfo.uid;
+      await getOrCreateUser(userId, userInfo.email || "");
 
-  // 🔐 Ensure all assets exist in DB
-  for (const asset of ASSETS) {
-    await prisma.asset.upsert({
-      where: { id: asset.id },
-      update: {},
-      create: {
-        id: asset.id,
-        name: asset.name,
-        cotCode: asset.cotCode ?? null,
-      },
-    });
-  }
-
-  // Find the latest report date across all assets in the fetched file
-  let latestReportDateInFile: Date | null = null;
-  for (const asset of ASSETS) {
-    if (!asset.cotCode) continue;
-    const history = parseCotForMarket(rawFile, asset.cotCode);
-    if (history.length > 0) {
-      const latestReport = history[history.length - 1];
-      if (!latestReportDateInFile || latestReport.reportDate > latestReportDateInFile) {
-        latestReportDateInFile = latestReport.reportDate;
+      const canRefresh = await canUserRefresh(userId);
+      if (!canRefresh) {
+        const remaining = await getRemainingRefreshes(userId);
+        return Response.json(
+          {
+            status: "error",
+            message: `Rate limit exceeded. You can refresh up to 3 times per day. Remaining today: ${remaining}`,
+            rateLimited: true,
+            remainingRefreshes: remaining,
+          },
+          { status: 429 }
+        );
       }
     }
-  }
 
-  // Check if the fetched report is actually newer than what we have
-  if (latestReportDateInFile) {
-    const latestInDb = await getLatestReportDateInDb();
-    const isNewer = await isReportDateNewer(latestReportDateInFile);
-    
-    if (!isNewer && latestInDb) {
-      const latestInDbStr = latestInDb.toISOString().split('T')[0];
-      const latestInFileStr = latestReportDateInFile.toISOString().split('T')[0];
-      console.log(
-        `Skipping refresh - latest report in DB (${latestInDbStr}) is same or newer than fetched (${latestInFileStr})`
-      );
-      return Response.json({
-        status: "skipped",
-        message: "No newer report available",
-        latestInDb: latestInDbStr,
-        latestInFile: latestInFileStr,
-        results: [],
+    // ── Expected date (logging only) ─────────────────────────────────────────
+    const latestFriday = getLatestFridayDate();
+    console.log(
+      `COT refresh started. Expecting latest report around ${latestFriday.toISOString().split("T")[0]}`
+    );
+
+    // ── Ensure all assets exist in DB ─────────────────────────────────────────
+    for (const asset of ASSETS) {
+      await prisma.asset.upsert({
+        where: { id: asset.id },
+        update: {},
+        create: { id: asset.id, name: asset.name, cotCode: asset.cotCode ?? null },
       });
     }
-  }
 
-  for (const asset of ASSETS) {
-    if (!asset.cotCode) continue;
+    // ── Quick pre-flight: is the API ahead of our DB? ─────────────────────────
+    // Fetch just 1 record for one asset so we can bail early if already up-to-date.
+    const probeAsset = ASSETS.find((a) => a.cotCode);
+    if (probeAsset?.cotCode) {
+      try {
+        const probe = await fetchCotForMarket(probeAsset.cotCode, 1);
+        if (probe.length > 0) {
+          const latestInFile = probe[0].reportDate;
+          const latestInDb = await getLatestReportDateInDb();
+          const isNewer = await isReportDateNewer(latestInFile);
 
-    try {
-      const stale = await isCotStale(asset.id);
-      if (!stale) {
-        console.log(`Skipping ${asset.id} - data is fresh`);
-        continue;
-      }
-
-      const history = parseCotForMarket(rawFile, asset.cotCode);
-      if (history.length === 0) {
-        console.log(`No data found for ${asset.id}`);
-        continue;
-      }
-
-      // Get the latest report from history
-      const latestReport = history[history.length - 1];
-      const reportDateStr = latestReport.reportDate.toISOString().split('T')[0];
-      const reportDayName = getDayName(latestReport.reportDate);
-
-      // Check if this specific asset's report is newer than what we have
-      const assetLatestInDb = await prisma.cotSnapshot.findFirst({
-        where: { assetId: asset.id },
-        orderBy: { reportDate: "desc" },
-        select: { reportDate: true },
-      });
-
-      if (assetLatestInDb) {
-        const reportDateOnly = new Date(latestReport.reportDate);
-        reportDateOnly.setHours(0, 0, 0, 0);
-        const dbDateOnly = new Date(assetLatestInDb.reportDate);
-        dbDateOnly.setHours(0, 0, 0, 0);
-
-        // Skip if we already have this report or a newer one
-        if (reportDateOnly.getTime() <= dbDateOnly.getTime()) {
-          console.log(
-            `Skipping ${asset.id} - already have report for ${reportDateStr} or newer`
-          );
-          continue;
+          if (!isNewer && latestInDb) {
+            const inDbStr = latestInDb.toISOString().split("T")[0];
+            const inFileStr = latestInFile.toISOString().split("T")[0];
+            console.log(
+              `Skipping refresh — DB (${inDbStr}) is same or newer than API (${inFileStr})`
+            );
+            return Response.json({
+              status: "skipped",
+              message: "No newer report available",
+              latestInDb: inDbStr,
+              latestInFile: inFileStr,
+              results: [],
+            });
+          }
         }
-      }
-      
-      // Validate the report is recent (within last 10 days)
-      // This handles:
-      // - Timezone differences (report might show as day before/after)
-      // - Holiday shifts (Thursday releases instead of Friday)
-      // - Weekend "as of" dates
-      if (!isReportDateRecent(latestReport.reportDate, 10)) {
-        const daysSinceReport = Math.floor(
-          (new Date().getTime() - latestReport.reportDate.getTime()) / (1000 * 60 * 60 * 24)
-        );
+      } catch (probeErr) {
+        // Pre-flight is an optimisation; if it fails, log and continue to per-asset fetch
         console.warn(
-          `WARNING: ${asset.id} - Latest report date ${reportDateStr} (${reportDayName}) ` +
-          `is ${daysSinceReport} days old, which exceeds the 10-day freshness threshold. ` +
-          `Skipping update.`
-        );
-        results.push({
-          asset: asset.id,
-          status: "skipped",
-          reason: `Report is ${daysSinceReport} days old (max allowed: 10 days)`,
-          reportDate: reportDateStr,
-        });
-        continue;
-      }
-
-      // Log if the report date is not a typical Friday (for awareness, but don't skip)
-      if (latestReport.reportDate.getDay() !== 5) {
-        console.log(
-          `INFO: ${asset.id} - Report date ${reportDateStr} is a ${reportDayName} ` +
-          `(not Friday - likely due to holiday shift or timezone). Processing anyway.`
+          "Pre-flight check failed, proceeding to per-asset fetch:",
+          probeErr instanceof Error ? probeErr.message : String(probeErr)
         );
       }
+    }
 
-      // Need at least 2 weeks for analysis
-      if (history.length < 2) {
-        console.log(`Insufficient history for ${asset.id} (need at least 2 weeks)`);
-        continue;
-      }
+    // ── Per-asset fetch & process ─────────────────────────────────────────────
+    const results: unknown[] = [];
 
-      // Compute COT analysis
-      const analysis = computeCotAnalysis(history);
-      
-      // Generate notes using Claude
-      const previous = history[history.length - 2];
-      let notes: string[];
+    for (const asset of ASSETS) {
+      if (!asset.cotCode) continue;
 
       try {
-        notes = await generateCotNotes(
-          asset.name,
+        const stale = await isCotStale(asset.id);
+        if (!stale) {
+          console.log(`Skipping ${asset.id} — data is fresh`);
+          continue;
+        }
+
+        // Fetch full history for this asset from the CFTC API
+        const history = await fetchCotForMarket(asset.cotCode);
+        if (history.length === 0) {
+          console.log(`No data returned for ${asset.id}`);
+          continue;
+        }
+
+        const latestReport = history[history.length - 1];
+        const reportDateStr = latestReport.reportDate.toISOString().split("T")[0];
+        const reportDayName = getDayName(latestReport.reportDate);
+
+        // Skip if we already have this exact report date (or newer)
+        const assetLatestInDb = await prisma.cotSnapshot.findFirst({
+          where: { assetId: asset.id },
+          orderBy: { reportDate: "desc" },
+          select: { reportDate: true },
+        });
+        if (assetLatestInDb) {
+          const reportDateOnly = new Date(latestReport.reportDate);
+          reportDateOnly.setHours(0, 0, 0, 0);
+          const dbDateOnly = new Date(assetLatestInDb.reportDate);
+          dbDateOnly.setHours(0, 0, 0, 0);
+          if (reportDateOnly.getTime() <= dbDateOnly.getTime()) {
+            console.log(
+              `Skipping ${asset.id} — already have report for ${reportDateStr} or newer`
+            );
+            continue;
+          }
+        }
+
+        // Reject stale data (> 10 days old) — guards against API returning stale data
+        if (!isReportDateRecent(latestReport.reportDate, 10)) {
+          const daysSince = Math.floor(
+            (Date.now() - latestReport.reportDate.getTime()) / (1000 * 60 * 60 * 24)
+          );
+          console.warn(
+            `WARNING: ${asset.id} — latest API report ${reportDateStr} (${reportDayName}) ` +
+              `is ${daysSince} days old, exceeds 10-day threshold. Skipping.`
+          );
+          results.push({
+            asset: asset.id,
+            status: "skipped",
+            reason: `Report is ${daysSince} days old (max allowed: 10 days)`,
+            reportDate: reportDateStr,
+          });
+          continue;
+        }
+
+        if (latestReport.reportDate.getDay() !== 5) {
+          console.log(
+            `INFO: ${asset.id} — report date ${reportDateStr} is a ${reportDayName} ` +
+              `(not Friday — likely holiday shift). Processing anyway.`
+          );
+        }
+
+        if (history.length < 2) {
+          console.log(`Insufficient history for ${asset.id} (need at least 2 weeks)`);
+          continue;
+        }
+
+        // ── Analysis ───────────────────────────────────────────────────────────
+        const analysis = computeCotAnalysis(history);
+        const previous = history[history.length - 2];
+
+        let notes: string[];
+        try {
+          notes = await generateCotNotes(asset.name, latestReport, previous, analysis);
+        } catch (e) {
+          console.error(`Skipping ${asset.id} — LLM note generation failed`);
+          continue;
+        }
+        analysis.notes = notes;
+
+        // ── Save snapshot ──────────────────────────────────────────────────────
+        await saveCotSnapshot(
+          asset.id,
+          latestReport.reportDate,
           latestReport,
-          previous,
-          analysis
-        );
-      } catch (e) {
-        console.error(`Skipping ${asset.id} due to LLM failure`);
-        continue;
-      }
-
-
-      // Update analysis with notes
-      analysis.notes = notes;
-
-      // Save COT snapshot with full analysis
-      await saveCotSnapshot(
-        asset.id,
-        latestReport.reportDate,
-        latestReport, // rawData
-        {
-          analysis, // derivedData with full analysis
-          commercialMetrics: {
-            netPosition: analysis.metrics.commercial.netPosition,
-            cotIndex: analysis.metrics.commercial.cotIndex,
-            range: {
-              min: Math.min(...history.map(h => h.commercialLong - h.commercialShort)),
-              max: Math.max(...history.map(h => h.commercialLong - h.commercialShort)),
+          {
+            analysis,
+            commercialMetrics: {
+              netPosition: analysis.metrics.commercial.netPosition,
+              cotIndex: analysis.metrics.commercial.cotIndex,
+              range: {
+                min: Math.min(...history.map((h) => h.commercialLong - h.commercialShort)),
+                max: Math.max(...history.map((h) => h.commercialLong - h.commercialShort)),
+              },
             },
-          },
-        }
-      );
+          }
+        );
 
-      // Seasonality
-      if (asset.seasonality) {
-        const staleSeasonality = await isSeasonalityStale(asset.id);
-        if (staleSeasonality) {
-          const result = computeSeasonality(asset.id);
-          await saveSeasonalitySnapshot(asset.id, result);
+        // ── Seasonality ────────────────────────────────────────────────────────
+        if (asset.seasonality) {
+          const staleSeasonality = await isSeasonalityStale(asset.id);
+          if (staleSeasonality) {
+            const result = computeSeasonality(asset.id);
+            await saveSeasonalitySnapshot(asset.id, result);
+          }
         }
+
+        results.push({
+          asset: asset.id,
+          status: "updated",
+          reportDate: reportDateStr,
+          reportDay: reportDayName,
+          score: analysis.score,
+          bias: analysis.bias,
+        });
+        console.log(`Updated ${asset.id}: ${analysis.bias} (${analysis.score})`);
+      } catch (assetErr) {
+        console.error(`Error processing ${asset.id}:`, assetErr);
+        results.push({
+          asset: asset.id,
+          status: "error",
+          error: assetErr instanceof Error ? assetErr.message : "Unknown error",
+        });
       }
+    }
 
-      results.push({
-        asset: asset.id,
-        status: "updated",
-        reportDate: reportDateStr,
-        reportDay: reportDayName,
-        score: analysis.score,
-        bias: analysis.bias,
-      });
-
-      console.log(`Updated ${asset.id}: ${analysis.bias} (${analysis.score})`);
-    } catch (error) {
-      console.error(`Error processing ${asset.id}:`, error);
-      results.push({
-        asset: asset.id,
-        status: "error",
-        error: error instanceof Error ? error.message : "Unknown error",
+    // ── Response ──────────────────────────────────────────────────────────────
+    if (userId) {
+      await recordRefreshAttempt(userId);
+      const remaining = await getRemainingRefreshes(userId);
+      return Response.json({
+        status: "ok",
+        results,
+        expectedDate: latestFriday.toISOString().split("T")[0],
+        remainingRefreshes: remaining,
       });
     }
-  }
 
-  // Record manual refresh attempt if this was a user-initiated refresh
-  if (userId) {
-    await recordRefreshAttempt(userId);
-    const remaining = await getRemainingRefreshes(userId);
-    return Response.json({ 
-      status: "ok", 
+    return Response.json({
+      status: "ok",
       results,
-      expectedDate: latestFriday.toISOString().split('T')[0],
-      remainingRefreshes: remaining,
+      expectedDate: latestFriday.toISOString().split("T")[0],
     });
+  } catch (error) {
+    console.error("POST /api/refresh error:", error);
+    return Response.json(
+      {
+        status: "error",
+        message: "Refresh failed",
+        error: error instanceof Error ? error.message : String(error),
+      },
+      { status: 500 }
+    );
   }
-
-  return Response.json({ 
-    status: "ok", 
-    results,
-    expectedDate: latestFriday.toISOString().split('T')[0],
-  });
 }

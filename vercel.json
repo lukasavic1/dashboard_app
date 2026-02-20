@@ -2,7 +2,11 @@
   "crons": [
     {
       "path": "/api/cron/refresh-cot",
-      "schedule": "35 20 * * 2,4,5"
+      "schedule": "0 21 * * 5"
+    },
+    {
+      "path": "/api/cron/refresh-cot",
+      "schedule": "30 23 * * 5"
     }
   ]
 }

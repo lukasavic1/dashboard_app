@@ -3,6 +3,7 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useAuth } from '@/lib/auth/AuthContext';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
+import { fetchSubscriptionStatusWithRetry } from '@/lib/subscription/client';
 import { CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/outline';
 import { useSearchParams, useRouter } from 'next/navigation';
 
@@ -26,8 +27,8 @@ function SubscriptionContent() {
         if (!user) return;
         
         try {
-          const token = await user.getIdToken();
-          
+          const token = await user.getIdToken(true);
+
           // First, verify the session with Stripe directly
           const verifyResponse = await fetch('/api/subscription/verify-session', {
             method: 'POST',
@@ -50,29 +51,19 @@ function SubscriptionContent() {
               }, 2000);
             }
           } else {
-            // If verification fails, fall back to checking status
+            // If verification fails, fall back to checking status (with retry on 401)
             console.warn('Session verification failed, checking status instead');
-            const statusResponse = await fetch('/api/subscription/status', {
-              headers: {
-                Authorization: `Bearer ${token}`,
-              },
-            });
+            const { ok, data: statusData } = await fetchSubscriptionStatusWithRetry(user);
 
-            if (statusResponse.ok) {
-              const statusData = await statusResponse.json();
+            if (ok && statusData) {
               setHasSubscription(statusData.hasActiveSubscription);
               setCheckingStatus(false);
-              
               if (!statusData.hasActiveSubscription) {
-                setTimeout(() => {
-                  checkSubscriptionStatusWithPolling();
-                }, 2000);
+                setTimeout(() => checkSubscriptionStatusWithPolling(), 2000);
               }
             } else {
               setCheckingStatus(false);
-              setTimeout(() => {
-                checkSubscriptionStatusWithPolling();
-              }, 2000);
+              setTimeout(() => checkSubscriptionStatusWithPolling(), 2000);
             }
           }
         } catch (err) {
@@ -112,24 +103,15 @@ function SubscriptionContent() {
     }
 
     try {
-      const token = await user.getIdToken();
-      const response = await fetch('/api/subscription/status', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const { ok, data } = await fetchSubscriptionStatusWithRetry(user);
 
-      if (response.ok) {
-        const data = await response.json();
+      if (ok && data) {
         setHasSubscription(data.hasActiveSubscription);
       } else {
-        // On error, assume no subscription (show subscription page)
-        console.error('Failed to check subscription status:', response.status);
         setHasSubscription(false);
       }
     } catch (err) {
       console.error('Error checking subscription status:', err);
-      // On error, assume no subscription (show subscription page)
       setHasSubscription(false);
     } finally {
       setCheckingStatus(false);
@@ -147,20 +129,12 @@ function SubscriptionContent() {
 
     const poll = async () => {
       try {
-        const token = await user.getIdToken();
-        const response = await fetch('/api/subscription/status', {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+        const { ok, data } = await fetchSubscriptionStatusWithRetry(user);
 
-        if (response.ok) {
-          const data = await response.json();
+        if (ok && data) {
           setHasSubscription(data.hasActiveSubscription);
-          
           if (data.hasActiveSubscription) {
             setCheckingStatus(false);
-            // Redirect will happen via useEffect
             return;
           }
         }

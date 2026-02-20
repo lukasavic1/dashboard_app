@@ -7,17 +7,19 @@ export interface SubscriptionStatus {
 }
 
 /**
- * Get or create a user in the database
+ * Get or create a user in the database.
+ * Uses a unique placeholder email when none is provided (User.email is unique).
  */
 export async function getOrCreateUser(firebaseUid: string, email: string) {
+  const emailOrPlaceholder = email?.trim() || `${firebaseUid}@no-email.local`;
   return prisma.user.upsert({
     where: { id: firebaseUid },
     update: {
-      email, // Update email in case it changed
+      email: emailOrPlaceholder, // Update email in case it changed
     },
     create: {
       id: firebaseUid,
-      email,
+      email: emailOrPlaceholder,
     },
   });
 }
